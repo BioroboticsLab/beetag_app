@@ -1,18 +1,27 @@
 package com.aki.beetag;
 
 import android.content.Context;
+import android.graphics.Camera;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
+import android.util.Size;
+import android.view.SurfaceHolder;
 import android.view.TextureView;
 import android.view.View;
 import android.app.Activity;
 import android.hardware.camera2.CameraManager;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class CameraActivity extends Activity {
 
@@ -40,6 +49,36 @@ public class CameraActivity extends Activity {
 
         }
     };
+    private Size previewSize;
+
+    // compares two (screen) dimensions by area
+    private class AreaComparator implements Comparator<Size> {
+        @Override
+        public int compare(Size o1, Size o2) {
+            return (o1.getHeight() * o1.getWidth()) - (o2.getHeight() * o2.getWidth());
+        }
+    }
+
+    // returns the smallest (by area) Size whose width and height are at least
+    // equal to 'matchWidth' and 'matchHeight'; returns the first element of
+    // 'options' if no such Size is found
+    private Size bestMatchingSize(Size[] options, int matchWidth, int matchHeight) {
+        ArrayList<Size> compatible = new ArrayList<Size>();
+        for (Size candidate : options) {
+            // make sure that aspect ratios match...
+            if ((candidate.getWidth() / candidate.getHeight() == matchWidth / matchHeight) &&
+                    // and that dimensions are large enough
+                    (candidate.getWidth() >= matchWidth) &&
+                    (candidate.getHeight() >= matchHeight)) {
+                compatible.add(candidate);
+            }
+        }
+        if (compatible.isEmpty()) {
+            return options[0];
+        } else {
+            return Collections.min(compatible, new AreaComparator());
+        }
+    }
 
     private CameraDevice camera;
     private String cameraId;
@@ -121,6 +160,15 @@ public class CameraActivity extends Activity {
                 if (cameraCharacteristics.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
+                StreamConfigurationMap streamConfigurations = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                Size[] outputSizes = streamConfigurations.getOutputSizes(SurfaceTexture.class);
+                for (Size s : outputSizes) {
+                    Log.d("cameradebug", "width: " + s.getWidth() + ", height: " + s.getHeight());
+                }
+                Log.d("cameradebug", "-----");
+                previewSize = bestMatchingSize(outputSizes, width, height);
+                cameraId = id;
+                return;
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
