@@ -1,6 +1,8 @@
 package com.aki.beetag;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.graphics.Camera;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -11,6 +13,8 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Size;
 import android.view.SurfaceHolder;
@@ -18,6 +22,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.app.Activity;
 import android.hardware.camera2.CameraManager;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +30,7 @@ import java.util.Comparator;
 
 public class CameraActivity extends Activity {
 
+    private static final int REQUEST_PERMISSION_CAMERA = 0;
     // TextureView that holds the camera's preview image
     private TextureView cameraPreview;
     // listener for the camera's preview image
@@ -32,6 +38,7 @@ public class CameraActivity extends Activity {
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
             setupCamera(width, height);
+            activateCamera();
         }
 
         @Override
@@ -60,23 +67,31 @@ public class CameraActivity extends Activity {
     }
 
     // returns the smallest (by area) Size whose width and height are at least
-    // equal to 'matchWidth' and 'matchHeight'; returns the first element of
-    // 'options' if no such Size is found
+    // equal to 'matchWidth' and 'matchHeight' and have the same ratio;
+    // if no such Size is found, returns the largest Size with matching ratio;
+    // if again no such Size is found, returns options[0]
     private Size bestMatchingSize(Size[] options, int matchWidth, int matchHeight) {
-        ArrayList<Size> compatible = new ArrayList<Size>();
+        ArrayList<Size> suitable = new ArrayList<Size>();
+        ArrayList<Size> tooSmall = new ArrayList<Size>();
         for (Size candidate : options) {
-            // make sure that aspect ratios match...
-            if ((candidate.getWidth() / candidate.getHeight() == matchWidth / matchHeight) &&
-                    // and that dimensions are large enough
-                    (candidate.getWidth() >= matchWidth) &&
-                    (candidate.getHeight() >= matchHeight)) {
-                compatible.add(candidate);
+            // make sure that aspect ratios match
+            if (candidate.getWidth() / candidate.getHeight() == matchWidth / matchHeight) {
+                // and that dimensions are large enough
+                if ((candidate.getWidth() >= matchWidth) && (candidate.getHeight() >= matchHeight)) {
+                    suitable.add(candidate);
+                } else {
+                    tooSmall.add(candidate);
+                }
             }
         }
-        if (compatible.isEmpty()) {
-            return options[0];
+        if (suitable.isEmpty()) {
+            if (tooSmall.isEmpty()) {
+                return options[0];
+            } else {
+                return Collections.max(tooSmall, new AreaComparator());
+            }
         } else {
-            return Collections.min(compatible, new AreaComparator());
+            return Collections.min(suitable, new AreaComparator());
         }
     }
 
@@ -87,6 +102,7 @@ public class CameraActivity extends Activity {
         @Override
         public void onOpened(@NonNull CameraDevice cameraDevice) {
             camera = cameraDevice;
+            Toast.makeText(getApplicationContext(), "Camera is now activated!", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -123,6 +139,7 @@ public class CameraActivity extends Activity {
         // check if the camera preview TextureView is available or not
         if (cameraPreview.isAvailable()) {
             setupCamera(cameraPreview.getWidth(), cameraPreview.getHeight());
+            activateCamera();
         }
         else {
             // TextureView is not available, set up listener
@@ -152,6 +169,16 @@ public class CameraActivity extends Activity {
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSION_CAMERA) {
+            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(getApplicationContext(), "This application needs access to the camera to function properly.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     private void setupCamera(int width, int height) {
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
@@ -169,6 +196,19 @@ public class CameraActivity extends Activity {
                 previewSize = bestMatchingSize(outputSizes, width, height);
                 cameraId = id;
                 return;
+            }
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void activateCamera() {
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+        try {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
+            } else {
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, REQUEST_PERMISSION_CAMERA);
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
