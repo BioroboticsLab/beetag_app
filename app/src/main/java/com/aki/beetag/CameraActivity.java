@@ -3,11 +3,13 @@ package com.aki.beetag;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.graphics.Camera;
+import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
@@ -17,7 +19,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Size;
-import android.view.SurfaceHolder;
+import android.util.SparseIntArray;
+import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.app.Activity;
@@ -57,6 +60,21 @@ public class CameraActivity extends Activity {
         }
     };
     private Size previewSize;
+    private static SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 180);
+        ORIENTATIONS.append(Surface.ROTATION_270, 270);
+    }
+    // returns true if the camera orientation sensor and device orientation sensor display values
+    // that are orthogonal to each other, false otherwise
+    private boolean previewNeedsRotation(CameraCharacteristics cameraCharacteristics, int deviceRotation) {
+        int cameraOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        int deviceOrientation = ORIENTATIONS.get(deviceRotation);
+        int relativeOrientation = cameraOrientation + deviceOrientation;
+        return (relativeOrientation % 180 == 90);
+    }
 
     // compares two (screen) dimensions by area
     private class AreaComparator implements Comparator<Size> {
@@ -70,28 +88,41 @@ public class CameraActivity extends Activity {
     // equal to 'matchWidth' and 'matchHeight' and have the same ratio;
     // if no such Size is found, returns the largest Size with matching ratio;
     // if again no such Size is found, returns options[0]
-    private Size bestMatchingSize(Size[] options, int matchWidth, int matchHeight) {
-        ArrayList<Size> suitable = new ArrayList<Size>();
-        ArrayList<Size> tooSmall = new ArrayList<Size>();
+    private Size getOptimalSize(Size[] options, int matchWidth, int matchHeight) {
+        ArrayList<Size> correctRatioLarge = new ArrayList<Size>();
+        ArrayList<Size> correctRatioSmall = new ArrayList<Size>();
+        ArrayList<Size> incorrectRatioLarge = new ArrayList<Size>();
+        ArrayList<Size> incorrectRatioSmall = new ArrayList<Size>();
         for (Size candidate : options) {
             // make sure that aspect ratios match
-            if (candidate.getWidth() / candidate.getHeight() == matchWidth / matchHeight) {
-                // and that dimensions are large enough
-                if ((candidate.getWidth() >= matchWidth) && (candidate.getHeight() >= matchHeight)) {
-                    suitable.add(candidate);
+            double candidateAspectRatio = (double) candidate.getWidth() / (double) candidate.getHeight();
+            double matchAspectRatio = (double) matchWidth / (double) matchHeight;
+            if (candidateAspectRatio == matchAspectRatio) {
+                if (candidate.getWidth() >= matchWidth && candidate.getHeight() >= matchHeight) {
+                    correctRatioLarge.add(candidate);
                 } else {
-                    tooSmall.add(candidate);
+                    correctRatioSmall.add(candidate);
+                }
+            } else {
+                if (candidate.getWidth() >= matchWidth && candidate.getHeight() >= matchHeight) {
+                    incorrectRatioLarge.add(candidate);
+                } else {
+                    incorrectRatioSmall.add(candidate);
                 }
             }
         }
-        if (suitable.isEmpty()) {
-            if (tooSmall.isEmpty()) {
-                return options[0];
+        if (correctRatioLarge.isEmpty()) {
+            if (incorrectRatioLarge.isEmpty()) {
+                if (correctRatioSmall.isEmpty()) {
+                    return Collections.max(incorrectRatioSmall, new AreaComparator());
+                } else {
+                    return Collections.max(correctRatioSmall, new AreaComparator());
+                }
             } else {
-                return Collections.max(tooSmall, new AreaComparator());
+                return Collections.min(incorrectRatioLarge, new AreaComparator());
             }
         } else {
-            return Collections.min(suitable, new AreaComparator());
+            return Collections.min(correctRatioLarge, new AreaComparator());
         }
     }
 
@@ -102,7 +133,7 @@ public class CameraActivity extends Activity {
         @Override
         public void onOpened(@NonNull CameraDevice cameraDevice) {
             camera = cameraDevice;
-            Toast.makeText(getApplicationContext(), "Camera is now activated!", Toast.LENGTH_SHORT).show();
+            startCameraPreview();
         }
 
         @Override
@@ -116,6 +147,7 @@ public class CameraActivity extends Activity {
 
         }
     };
+    private CaptureRequest.Builder captureRequestBuilder;
 
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
@@ -193,7 +225,21 @@ public class CameraActivity extends Activity {
                     Log.d("cameradebug", "width: " + s.getWidth() + ", height: " + s.getHeight());
                 }
                 Log.d("cameradebug", "-----");
-                previewSize = bestMatchingSize(outputSizes, width, height);
+                int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
+                if (previewNeedsRotation(cameraCharacteristics, deviceRotation)) {
+                    // swap width and height to match the screen rotation
+                    int widthBuf = width;
+                    width = height;
+                    height = widthBuf;
+                }
+                previewSize = getOptimalSize(outputSizes, width, height);
+
+                // transform the TextureView to keep correct aspect ratio
+                Matrix transform = new Matrix();
+                cameraPreview.getTransform(transform);
+                transform.setScale((float) width / (float) previewSize.getWidth(), (float) height / (float) previewSize.getHeight());
+                cameraPreview.setTransform(transform);
+
                 cameraId = id;
                 return;
             }
@@ -215,7 +261,36 @@ public class CameraActivity extends Activity {
         }
     }
 
-    // release the camera ressource
+    private void startCameraPreview() {
+        SurfaceTexture surfaceTexture = cameraPreview.getSurfaceTexture();
+        surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
+        Surface previewSurface = new Surface(surfaceTexture);
+
+        try {
+            captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            captureRequestBuilder.addTarget(previewSurface);
+            camera.createCaptureSession(Collections.singletonList(previewSurface),
+                    new CameraCaptureSession.StateCallback() {
+                        @Override
+                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            try {
+                                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+                            } catch (CameraAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                            Toast.makeText(getApplicationContext(), "Oops! Something went wrong while trying to use the camera :(", Toast.LENGTH_SHORT);
+                        }
+                    }, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // release the camera resource
     private void closeCamera() {
         if (camera != null) {
             camera.close();
