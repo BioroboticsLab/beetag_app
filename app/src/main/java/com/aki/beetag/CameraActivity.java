@@ -3,6 +3,7 @@ package com.aki.beetag;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -11,6 +12,9 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.ImageReader;
+import android.os.Build;
+import android.os.Environment;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
@@ -25,15 +29,22 @@ import android.view.TextureView;
 import android.view.View;
 import android.app.Activity;
 import android.hardware.camera2.CameraManager;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 
 public class CameraActivity extends Activity {
 
     private static final int REQUEST_PERMISSION_CAMERA = 0;
+    private static final int REQUEST_PERMISSION_EXTERNAL_STORAGE = 1;
     // TextureView that holds the camera's preview image
     private TextureView cameraPreview;
     // listener for the camera's preview image
@@ -60,6 +71,7 @@ public class CameraActivity extends Activity {
         }
     };
     private Size previewSize;
+
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 0);
@@ -67,6 +79,7 @@ public class CameraActivity extends Activity {
         ORIENTATIONS.append(Surface.ROTATION_180, 180);
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
+
     // returns true if the camera orientation sensor and device orientation sensor display values
     // that are orthogonal to each other, false otherwise
     private boolean previewNeedsRotation(CameraCharacteristics cameraCharacteristics, int deviceRotation) {
@@ -87,7 +100,7 @@ public class CameraActivity extends Activity {
     // returns the smallest (by area) Size whose width and height are at least
     // equal to 'matchWidth' and 'matchHeight',
     // prioritizes Size that has matching aspect ratio;
-    // if no large enough Size is found, returns the largest one
+    // if no large enough Size is found, returns the largest one (by area)
     private Size getOptimalSize(Size[] options, int matchWidth, int matchHeight) {
         ArrayList<Size> correctRatioLarge = new ArrayList<Size>();
         ArrayList<Size> correctRatioSmall = new ArrayList<Size>();
@@ -149,17 +162,27 @@ public class CameraActivity extends Activity {
     };
     private CaptureRequest.Builder captureRequestBuilder;
 
+    private ImageButton cameraShutterButton;
+
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
+        createImageFolder();
+
         // assign the camera preview TextureView
         cameraPreview = (TextureView) findViewById(R.id.textureview_camera_preview);
+        cameraShutterButton = (ImageButton) findViewById(R.id.button_camera_shutter);
+        cameraShutterButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                checkStorageWritePermission();
+            }
+        });
     }
 
     @Override
@@ -204,10 +227,23 @@ public class CameraActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_PERMISSION_CAMERA) {
-            if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(getApplicationContext(), "This application needs access to the camera to function properly.", Toast.LENGTH_SHORT).show();
-            }
+        switch (requestCode) {
+            case REQUEST_PERMISSION_CAMERA:
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(getApplicationContext(), "This application needs access to the camera to function properly.", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case REQUEST_PERMISSION_EXTERNAL_STORAGE:
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(getApplicationContext(), "This application needs access to the external storage to function properly.", Toast.LENGTH_SHORT).show();
+                } else {
+                    try {
+                        Toast.makeText(getApplicationContext(), "External storage permission successfully granted! :)", Toast.LENGTH_SHORT).show();
+                        createImageFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
         }
     }
 
@@ -221,10 +257,6 @@ public class CameraActivity extends Activity {
                 }
                 StreamConfigurationMap streamConfigurations = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
                 Size[] outputSizes = streamConfigurations.getOutputSizes(SurfaceTexture.class);
-                for (Size s : outputSizes) {
-                    Log.d("cameradebug", "width: " + s.getWidth() + ", height: " + s.getHeight());
-                }
-                Log.d("cameradebug", "-----");
                 int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
                 if (previewNeedsRotation(cameraCharacteristics, deviceRotation)) {
                     // swap width and height to match the screen rotation
@@ -233,7 +265,6 @@ public class CameraActivity extends Activity {
                     height = widthBuf;
                 }
                 previewSize = getOptimalSize(outputSizes, width, height);
-
                 // transform the TextureView to keep correct aspect ratio
                 Matrix transform = new Matrix();
                 cameraPreview.getTransform(transform);
@@ -314,4 +345,48 @@ public class CameraActivity extends Activity {
         backgroundHandlerThread = null;
         backgroundHandler = null;
     }
+
+    private File imageFolder;
+    private String imageFilePath;
+
+    private void createImageFolder() {
+        File publicPictureFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+        imageFolder = new File(publicPictureFolder, "Beetags");
+        if (!imageFolder.exists()) {
+            imageFolder.mkdirs();
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
+        File imageFile = File.createTempFile(timestamp, ".png", imageFolder);
+        imageFilePath = imageFile.getAbsolutePath();
+        return imageFile;
+    }
+
+    private void checkStorageWritePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                    PackageManager.PERMISSION_GRANTED) {
+                try {
+                    createImageFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    Toast.makeText(this, "Application needs access to external storage to store the image files.",
+                            Toast.LENGTH_SHORT).show();
+                }
+                requestPermissions(new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSION_EXTERNAL_STORAGE);
+            }
+        } else {
+            try {
+                createImageFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
