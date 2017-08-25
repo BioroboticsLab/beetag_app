@@ -11,6 +11,8 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.os.Build;
@@ -21,7 +23,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.app.ActivityCompat;
-import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.Surface;
@@ -71,6 +72,17 @@ public class CameraActivity extends Activity {
         }
     };
     private Size previewSize;
+
+    private Size imageSize;
+    private ImageReader imageReader;
+    // listener for if the captured image is available
+    private final ImageReader.OnImageAvailableListener onImageAvailableListener =
+            new ImageReader.OnImageAvailableListener() {
+                @Override
+                public void onImageAvailable(ImageReader imageReader) {
+
+                }
+            };
 
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -162,6 +174,22 @@ public class CameraActivity extends Activity {
     };
     private CaptureRequest.Builder captureRequestBuilder;
 
+    private CameraCaptureSession cameraCaptureSession;
+    private CameraCaptureSession.CaptureCallback cameraCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+        private void process(CaptureResult result) {
+            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+            if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+                    afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                Toast.makeText(getApplicationContext(), "Picture taken. (not)", Toast.LENGTH_SHORT).show();
+            }
+        }
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
+            process(result);
+        }
+    };
+
     private ImageButton cameraShutterButton;
 
     private HandlerThread backgroundHandlerThread;
@@ -181,6 +209,7 @@ public class CameraActivity extends Activity {
             @Override
             public void onClick(View view) {
                 checkStorageWritePermission();
+                camera_autofocus();
             }
         });
     }
@@ -271,6 +300,11 @@ public class CameraActivity extends Activity {
                 transform.setScale((float) width / (float) previewSize.getWidth(), (float) height / (float) previewSize.getHeight());
                 cameraPreview.setTransform(transform);
 
+                imageSize = Collections.max(new ArrayList<Size>(Arrays.asList(
+                        streamConfigurations.getOutputSizes(ImageFormat.JPEG))), new AreaComparator());
+                imageReader = ImageReader.newInstance(imageSize.getWidth(), imageSize.getHeight(), ImageFormat.JPEG, 1);
+                imageReader.setOnImageAvailableListener(onImageAvailableListener, backgroundHandler);
+
                 cameraId = id;
                 return;
             }
@@ -300,11 +334,12 @@ public class CameraActivity extends Activity {
         try {
             captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             captureRequestBuilder.addTarget(previewSurface);
-            camera.createCaptureSession(Collections.singletonList(previewSurface),
+            camera.createCaptureSession(Arrays.asList(previewSurface, imageReader.getSurface()),
                     new CameraCaptureSession.StateCallback() {
                         @Override
-                        public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                        public void onConfigured(@NonNull CameraCaptureSession captureSession) {
                             try {
+                                cameraCaptureSession = captureSession;
                                 cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
@@ -313,7 +348,7 @@ public class CameraActivity extends Activity {
 
                         @Override
                         public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            Toast.makeText(getApplicationContext(), "Oops! Something went wrong while trying to use the camera :(", Toast.LENGTH_SHORT);
+                            Toast.makeText(getApplicationContext(), "Oops! Something went wrong while trying to use the camera :(", Toast.LENGTH_SHORT).show();
                         }
                     }, null);
         } catch (CameraAccessException e) {
@@ -389,4 +424,12 @@ public class CameraActivity extends Activity {
         }
     }
 
+    private void camera_autofocus() {
+        captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
+        try {
+            cameraCaptureSession.capture(captureRequestBuilder.build(), cameraCaptureCallback, backgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
 }
