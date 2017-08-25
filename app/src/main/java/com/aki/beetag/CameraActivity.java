@@ -85,9 +85,9 @@ public class CameraActivity extends Activity {
     }
 
     // returns the smallest (by area) Size whose width and height are at least
-    // equal to 'matchWidth' and 'matchHeight' and have the same ratio;
-    // if no such Size is found, returns the largest Size with matching ratio;
-    // if again no such Size is found, returns options[0]
+    // equal to 'matchWidth' and 'matchHeight',
+    // prioritizes Size that has matching aspect ratio;
+    // if no large enough Size is found, returns the largest one
     private Size getOptimalSize(Size[] options, int matchWidth, int matchHeight) {
         ArrayList<Size> correctRatioLarge = new ArrayList<Size>();
         ArrayList<Size> correctRatioSmall = new ArrayList<Size>();
@@ -111,18 +111,18 @@ public class CameraActivity extends Activity {
                 }
             }
         }
+        AreaComparator areaComparator = new AreaComparator();
         if (correctRatioLarge.isEmpty()) {
             if (incorrectRatioLarge.isEmpty()) {
-                if (correctRatioSmall.isEmpty()) {
-                    return Collections.max(incorrectRatioSmall, new AreaComparator());
-                } else {
-                    return Collections.max(correctRatioSmall, new AreaComparator());
-                }
+                Size correctRatioMax = Collections.max(correctRatioSmall, areaComparator);
+                Size incorrectRatioMax = Collections.max(incorrectRatioSmall, areaComparator);
+                return (areaComparator.compare(incorrectRatioMax, correctRatioMax) > 0) ?
+                        incorrectRatioMax : correctRatioMax;
             } else {
-                return Collections.min(incorrectRatioLarge, new AreaComparator());
+                return Collections.min(incorrectRatioLarge, areaComparator);
             }
         } else {
-            return Collections.min(correctRatioLarge, new AreaComparator());
+            return Collections.min(correctRatioLarge, areaComparator);
         }
     }
 
