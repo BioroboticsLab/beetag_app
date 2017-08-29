@@ -10,6 +10,7 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
@@ -41,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Locale;
 
 public class CameraActivity extends Activity {
 
@@ -180,7 +182,9 @@ public class CameraActivity extends Activity {
             Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
             if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
                     afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
-                Toast.makeText(getApplicationContext(), "Picture taken. (not)", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "AF locked!", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "AF not locked!", Toast.LENGTH_SHORT).show();
             }
         }
         @Override
@@ -356,6 +360,14 @@ public class CameraActivity extends Activity {
         }
     }
 
+    private void startCaptureRequest() {
+        try {
+            captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     // release the camera resource
     private void closeCamera() {
         if (camera != null) {
@@ -393,8 +405,8 @@ public class CameraActivity extends Activity {
     }
 
     private File createImageFile() throws IOException {
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd_HHmmss").format(new Date());
-        File imageFile = File.createTempFile(timestamp, ".png", imageFolder);
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
+        File imageFile = File.createTempFile(timestamp, ".jpg", imageFolder);
         imageFilePath = imageFile.getAbsolutePath();
         return imageFile;
     }
