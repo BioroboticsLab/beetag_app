@@ -10,11 +10,11 @@ import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
-import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Environment;
@@ -35,7 +35,9 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -81,10 +83,45 @@ public class CameraActivity extends Activity {
     private final ImageReader.OnImageAvailableListener onImageAvailableListener =
             new ImageReader.OnImageAvailableListener() {
                 @Override
-                public void onImageAvailable(ImageReader imageReader) {
-
+                public void onImageAvailable(ImageReader imgReader) {
+                    backgroundHandler.post(new ImageSaver(imgReader.acquireLatestImage()));
                 }
             };
+
+    private class ImageSaver implements Runnable {
+
+        private final Image image;
+
+        public ImageSaver(Image image) {
+            this.image = image;
+        }
+
+        @Override
+        public void run() {
+            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+            byte[] bytes = new byte[buffer.remaining()];
+            buffer.get(bytes);
+
+            FileOutputStream fileOutputStream = null;
+            try {
+                fileOutputStream = new FileOutputStream(imageFilePath);
+                fileOutputStream.write(bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                image.close();
+                if (fileOutputStream != null) {
+                    try {
+                        fileOutputStream.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+
+    private int totalSensorOrientation;
 
     private static SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -94,13 +131,12 @@ public class CameraActivity extends Activity {
         ORIENTATIONS.append(Surface.ROTATION_270, 270);
     }
 
-    // returns true if the camera orientation sensor and device orientation sensor display values
-    // that are orthogonal to each other, false otherwise
-    private boolean previewNeedsRotation(CameraCharacteristics cameraCharacteristics, int deviceRotation) {
+    // returns the final orientation of the sensor in degrees, consisting of the sensor orientation
+    // and the device orientation added together; can be one of 0, 90, 180 and 270
+    private int totalSensorRotation(CameraCharacteristics cameraCharacteristics, int deviceRotation) {
         int cameraOrientation = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
         int deviceOrientation = ORIENTATIONS.get(deviceRotation);
-        int relativeOrientation = cameraOrientation + deviceOrientation;
-        return (relativeOrientation % 180 == 90);
+        return ((cameraOrientation + deviceOrientation) % 360);
     }
 
     // compares two (screen) dimensions by area
@@ -183,6 +219,7 @@ public class CameraActivity extends Activity {
             if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
                     afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
                 Toast.makeText(getApplicationContext(), "AF locked!", Toast.LENGTH_SHORT).show();
+                startCaptureRequest();
             } else {
                 Toast.makeText(getApplicationContext(), "AF not locked!", Toast.LENGTH_SHORT).show();
             }
@@ -271,7 +308,7 @@ public class CameraActivity extends Activity {
                     Toast.makeText(getApplicationContext(), "This application needs access to the external storage to function properly.", Toast.LENGTH_SHORT).show();
                 } else {
                     try {
-                        Toast.makeText(getApplicationContext(), "External storage permission successfully granted! :)", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "External storage permission successfully granted.", Toast.LENGTH_SHORT).show();
                         createImageFile();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -291,7 +328,8 @@ public class CameraActivity extends Activity {
                 StreamConfigurationMap streamConfigurations = cameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
                 Size[] outputSizes = streamConfigurations.getOutputSizes(SurfaceTexture.class);
                 int deviceRotation = getWindowManager().getDefaultDisplay().getRotation();
-                if (previewNeedsRotation(cameraCharacteristics, deviceRotation)) {
+                totalSensorOrientation = totalSensorRotation(cameraCharacteristics, deviceRotation);
+                if (totalSensorOrientation == 90 || totalSensorOrientation == 270) {
                     // swap width and height to match the screen rotation
                     int widthBuf = width;
                     width = height;
@@ -363,6 +401,23 @@ public class CameraActivity extends Activity {
     private void startCaptureRequest() {
         try {
             captureRequestBuilder = camera.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureRequestBuilder.addTarget(imageReader.getSurface());
+            captureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, totalSensorOrientation);
+
+            CameraCaptureSession.CaptureCallback captureCallback = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+                    super.onCaptureStarted(session, request, timestamp, frameNumber);
+
+                    try {
+                        createImageFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
