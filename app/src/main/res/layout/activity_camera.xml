@@ -8,13 +8,12 @@
     tools:layout_editor_absoluteY="0dp"
     tools:layout_editor_absoluteX="0dp">
 
-    <TextureView
-        android:id="@+id/textureview_camera_preview"
-        android:layout_width="wrap_content"
+    <com.flurgle.camerakit.CameraView
+        android:id="@+id/camera_view"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true" />
+        android:adjustViewBounds="false"
+        android:visibility="visible" />
 
     <ImageButton
         android:id="@+id/button_camera_shutter"
