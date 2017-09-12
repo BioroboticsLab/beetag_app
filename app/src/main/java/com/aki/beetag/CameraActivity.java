@@ -219,9 +219,9 @@ public class CameraActivity extends Activity {
             if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
                     afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
                 Toast.makeText(getApplicationContext(), "AF locked!", Toast.LENGTH_SHORT).show();
-                startCaptureRequest();
+                //startCaptureRequest();
             } else {
-                Toast.makeText(getApplicationContext(), "AF not locked!", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "AF not locked!", Toast.LENGTH_SHORT).show();
             }
         }
         @Override
@@ -249,7 +249,6 @@ public class CameraActivity extends Activity {
         cameraShutterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                checkStorageWritePermission();
                 camera_autofocus();
             }
         });
@@ -307,8 +306,8 @@ public class CameraActivity extends Activity {
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(getApplicationContext(), "This application needs access to the external storage to function properly.", Toast.LENGTH_SHORT).show();
                 } else {
+                    Toast.makeText(getApplicationContext(), "External storage permission successfully granted.", Toast.LENGTH_SHORT).show();
                     try {
-                        Toast.makeText(getApplicationContext(), "External storage permission successfully granted.", Toast.LENGTH_SHORT).show();
                         createImageFile();
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -358,10 +357,18 @@ public class CameraActivity extends Activity {
     private void activateCamera() {
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                    cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
+                } else {
+                    if (shouldShowRequestPermissionRationale(android.Manifest.permission.CAMERA)) {
+                        Toast.makeText(this,
+                                "Video app required access to camera", Toast.LENGTH_SHORT).show();
+                    }
+                    requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_PERMISSION_CAMERA);
+                }
             } else {
-                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.CAMERA}, REQUEST_PERMISSION_CAMERA);
+                cameraManager.openCamera(cameraId, cameraStateCallback, backgroundHandler);
             }
         } catch (CameraAccessException e) {
             e.printStackTrace();
@@ -390,7 +397,7 @@ public class CameraActivity extends Activity {
 
                         @Override
                         public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
-                            Toast.makeText(getApplicationContext(), "Oops! Something went wrong while trying to use the camera :(", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Something went wrong while trying to use the camera :(", Toast.LENGTH_SHORT).show();
                         }
                     }, null);
         } catch (CameraAccessException e) {
@@ -408,12 +415,7 @@ public class CameraActivity extends Activity {
                 @Override
                 public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
                     super.onCaptureStarted(session, request, timestamp, frameNumber);
-
-                    try {
-                        createImageFile();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    checkStorageWritePermissionAndCreateImageFile();
                 }
             };
 
@@ -459,14 +461,15 @@ public class CameraActivity extends Activity {
         }
     }
 
-    private File createImageFile() throws IOException {
+    // don't call this method directly, call checkStorageWritePermissionAndCreateImageFile() instead,
+    // this method is called from there
+    private void createImageFile() throws IOException {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
         File imageFile = File.createTempFile(timestamp, ".jpg", imageFolder);
         imageFilePath = imageFile.getAbsolutePath();
-        return imageFile;
     }
 
-    private void checkStorageWritePermission() {
+    private void checkStorageWritePermissionAndCreateImageFile() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
                     PackageManager.PERMISSION_GRANTED) {
