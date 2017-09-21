@@ -10,9 +10,9 @@
 
     <com.flurgle.camerakit.CameraView
         android:id="@+id/camera_view"
-        android:layout_width="match_parent"
+        android:adjustViewBounds="true"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:adjustViewBounds="false"
         android:visibility="visible" />
 
     <ImageButton
