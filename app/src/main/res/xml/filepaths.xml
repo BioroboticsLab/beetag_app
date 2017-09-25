@@ -1,3 +1,5 @@
 <paths>
-    <external-path path="." name="beetagimages" />
+    <external-path
+        name="beetagimages"
+        path="." />
 </paths>
