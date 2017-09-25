@@ -1,14 +1,18 @@
 package com.aki.beetag;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.HandlerThread;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.view.View;
 import android.app.Activity;
 import android.widget.ImageButton;
@@ -28,50 +32,23 @@ import com.flurgle.camerakit.CameraView;
 public class CameraActivity extends Activity {
 
     private static final int REQUEST_PERMISSION_EXTERNAL_STORAGE = 1;
+    private static final int REQUEST_CAPTURE_IMAGE = 2;
 
     private ImageButton cameraShutterButton;
 
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
 
-    private boolean capturingImage;
     private boolean storageWritePermissionGranted;
 
     private CameraView cameraView;
 
-    private class ImageSaver implements Runnable {
-        private final byte[] image;
-
-        public ImageSaver(byte[] image) {
-            this.image = image;
-        }
-
-        @Override
-        public void run() {
-            FileOutputStream fileOutputStream = null;
-            try {
-                fileOutputStream = new FileOutputStream(imageFilePath);
-                fileOutputStream.write(image);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                capturingImage = false;
-                if (fileOutputStream != null) {
-                    try {
-                        fileOutputStream.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }
+    private File imageFolder;
+    private File imageFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        capturingImage = false;
 
         checkStorageWritePermission();
 
@@ -83,6 +60,7 @@ public class CameraActivity extends Activity {
         cameraShutterButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                /*
                 if (capturingImage || !storageWritePermissionGranted) {
                     return;
                 }
@@ -93,34 +71,63 @@ public class CameraActivity extends Activity {
                     e.printStackTrace();
                 }
                 cameraView.captureImage();
+                */
+                dispatchCaptureIntent();
             }
         });
+    }
 
-        cameraView = findViewById(R.id.camera_view);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case REQUEST_CAPTURE_IMAGE:
+                // rename image file so that timestamp is correct
+                if (resultCode == RESULT_OK) {
+                    Toast.makeText(this, "RESULT_OK", Toast.LENGTH_SHORT).show();
+                    try {
+                        if (!imageFile.renameTo(createImageFile())) {
+                            Toast.makeText(this, "Renaming failed, timestamp of image in 'Beetags' folder may be wrong.", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else if (resultCode == RESULT_CANCELED) {
+                    Toast.makeText(this, "RESULT_CANCELED", Toast.LENGTH_SHORT).show();
+                    if (!imageFile.delete()) {
+                        Toast.makeText(this, "Deletetion failed, there may be empty image files in 'Beetags' folder.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                break;
+        }
+    }
 
-        cameraView.setCameraListener(new CameraListener() {
-            @Override
-            public void onPictureTaken(byte[] picture) {
-                super.onPictureTaken(picture);
-                backgroundHandler.post(new ImageSaver(picture));
+    private void dispatchCaptureIntent() {
+        Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (captureIntent.resolveActivity(getPackageManager()) != null) {
+            imageFile = null;
+            try {
+                imageFile = createImageFile();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        });
-        cameraView.setFacing(CameraKit.Constants.FACING_BACK);
-        cameraView.setFocus(CameraKit.Constants.FOCUS_TAP_WITH_MARKER);
-        cameraView.setZoom(CameraKit.Constants.ZOOM_OFF);
-        cameraView.setCropOutput(false);
+            if (imageFile != null) {
+                String authorities = getApplicationContext().getPackageName() + ".fileprovider";
+                Uri imageUri = FileProvider.getUriForFile(this, authorities, imageFile);
+                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
+            }
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         startBackgroundThread();
-        cameraView.start();
     }
 
     @Override
     protected void onPause() {
-        cameraView.stop();
         stopBackgroundThread();
         super.onPause();
     }
@@ -172,9 +179,6 @@ public class CameraActivity extends Activity {
         backgroundHandler = null;
     }
 
-    private File imageFolder;
-    private String imageFilePath;
-
     private void createImageFolder() {
         File publicPictureFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         imageFolder = new File(publicPictureFolder, "Beetags");
@@ -183,10 +187,10 @@ public class CameraActivity extends Activity {
         }
     }
 
-    private void createImageFile() throws IOException {
+    private File createImageFile() throws IOException {
         String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
-        File imageFile = File.createTempFile(timestamp + "_", ".jpg", imageFolder);
-        imageFilePath = imageFile.getAbsolutePath();
+        File imgFile = File.createTempFile(timestamp + "_", ".jpg", imageFolder);
+        return imgFile;
     }
 
     private void checkStorageWritePermission() {
