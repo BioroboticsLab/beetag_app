@@ -15,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.view.View;
+import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -25,14 +26,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
-public class CameraActivity extends Activity {
+public class PictureActivity extends Activity {
 
     private static final int REQUEST_PERMISSION_EXTERNAL_STORAGE = 0;
     private static final int REQUEST_PERMISSION_CAMERA = 1;
     private static final int REQUEST_PERMISSION_MULTIPLE = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
-    private ImageButton cameraShutterButton;
+    private ImageButton cameraButton;
+    private GridView image_gridview;
 
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
@@ -49,12 +51,14 @@ public class CameraActivity extends Activity {
 
         checkCameraAndStoragePermissions();
 
-        setContentView(R.layout.activity_camera);
+        setContentView(R.layout.activity_picture);
+
+        image_gridview = findViewById(R.id.gridview_images);
 
         createImageFolder();
 
-        cameraShutterButton = findViewById(R.id.button_camera_shutter);
-        cameraShutterButton.setOnClickListener(new View.OnClickListener() {
+        cameraButton = findViewById(R.id.button_camera);
+        cameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (!storageWritePermissionGranted) {
