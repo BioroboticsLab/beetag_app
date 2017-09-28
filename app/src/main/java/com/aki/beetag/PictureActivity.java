@@ -2,8 +2,12 @@ package com.aki.beetag;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -14,9 +18,16 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AbsListView;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
@@ -34,7 +45,7 @@ public class PictureActivity extends Activity {
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
     private ImageButton cameraButton;
-    private GridView image_gridview;
+    private GridView imageGridView;
 
     private HandlerThread backgroundHandlerThread;
     private Handler backgroundHandler;
@@ -43,7 +54,59 @@ public class PictureActivity extends Activity {
     private boolean cameraPermissionGranted;
 
     private File imageFolder;
-    private File imageFile;
+    private File lastImageFile;
+    private File[] imageFiles;
+
+    // ImageAdapter gets images from folder and supplies GridView with ImageViews to display
+    private class ImageAdapter extends BaseAdapter {
+
+        private Context context;
+
+        public ImageAdapter(Context c) {
+            this.context = c;
+        }
+
+        @Override
+        public int getCount() {
+            return imageFiles.length;
+        }
+
+        @Override
+        public File getItem(int position) {
+            if (position < 0 || position >= imageFiles.length) {
+                return null;
+            } else {
+                return imageFiles[position];
+            }
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ImageView imageView;
+            int thumbnailSize = ((GridView) parent).getColumnWidth();
+            Log.d("cameradebug", "thumbnail size: " + thumbnailSize);
+            if (convertView == null) {
+                imageView = new ImageView(context);
+                imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                imageView.setPadding(2, 2, 2, 2);
+            } else {
+                imageView = (ImageView) convertView;
+                imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                imageView.setPadding(2, 2, 2, 2);
+            }
+            // TODO limit thumbnail size (250x250?)
+            Bitmap thumbnail = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(imageFiles[position].getPath()), thumbnailSize, thumbnailSize);
+            imageView.setImageBitmap(thumbnail);
+            return imageView;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,9 +116,23 @@ public class PictureActivity extends Activity {
 
         setContentView(R.layout.activity_picture);
 
-        image_gridview = findViewById(R.id.gridview_images);
-
         createImageFolder();
+        imageFiles = imageFolder.listFiles();
+
+        imageGridView = findViewById(R.id.gridview_images);
+        imageGridView.setAdapter(new ImageAdapter(this));
+        imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                File clickedImage = (File) imageGridView.getItemAtPosition(position);
+                Toast.makeText(getApplicationContext(),
+                        "(" + position + "/" + imageGridView.getCount() + "): " + clickedImage.toString(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+        Log.d("cameradebug", "height: " + getResources().getDisplayMetrics().heightPixels);
+        Log.d("cameradebug", "width: " + getResources().getDisplayMetrics().widthPixels);
+        //imageGridView.setColumnWidth((int) (getResources().getDisplayMetrics().heightPixels) / 3);
 
         cameraButton = findViewById(R.id.button_camera);
         cameraButton.setOnClickListener(new View.OnClickListener() {
@@ -77,15 +154,15 @@ public class PictureActivity extends Activity {
     private void dispatchCaptureIntent() {
         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (captureIntent.resolveActivity(getPackageManager()) != null) {
-            imageFile = null;
+            lastImageFile = null;
             try {
-                imageFile = createImageFile();
+                lastImageFile = createImageFile();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            if (imageFile != null) {
+            if (lastImageFile != null) {
                 String authorities = getApplicationContext().getPackageName() + ".fileprovider";
-                Uri imageUri = FileProvider.getUriForFile(this, authorities, imageFile);
+                Uri imageUri = FileProvider.getUriForFile(this, authorities, lastImageFile);
                 captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
                 startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
             }
@@ -100,7 +177,7 @@ public class PictureActivity extends Activity {
                 if (resultCode == RESULT_OK) {
                     // rename image file so that timestamp is correct
                     try {
-                        if (!imageFile.renameTo(createImageFile())) {
+                        if (!lastImageFile.renameTo(createImageFile())) {
                             Toast.makeText(this, "Renaming failed, timestamp of image " +
                                     "in 'Beetags' folder may be wrong.", Toast.LENGTH_SHORT).show();
                         }
@@ -109,7 +186,7 @@ public class PictureActivity extends Activity {
                     }
                 } else {
                     // delete image file
-                    if (!imageFile.delete()) {
+                    if (!lastImageFile.delete()) {
                         Toast.makeText(this, "Deletion failed, there may be empty " +
                                 "image files in 'Beetags' folder.", Toast.LENGTH_SHORT).show();
                     }
