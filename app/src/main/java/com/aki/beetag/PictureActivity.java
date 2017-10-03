@@ -55,15 +55,16 @@ public class PictureActivity extends Activity {
 
     private File imageFolder;
     private File lastImageFile;
-    private File[] imageFiles;
 
     // ImageAdapter gets images from folder and supplies GridView with ImageViews to display
     private class ImageAdapter extends BaseAdapter {
 
         private Context context;
+        private File[] imageFiles;
 
         public ImageAdapter(Context c) {
             this.context = c;
+            imageFiles = imageFolder.listFiles();
         }
 
         @Override
@@ -106,6 +107,12 @@ public class PictureActivity extends Activity {
             imageView.setImageBitmap(thumbnail);
             return imageView;
         }
+
+        @Override
+        public void notifyDataSetChanged() {
+            imageFiles = imageFolder.listFiles();
+            super.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -116,9 +123,25 @@ public class PictureActivity extends Activity {
 
         setContentView(R.layout.activity_picture);
 
-        createImageFolder();
-        imageFiles = imageFolder.listFiles();
+        if (storageWritePermissionGranted) {
+            setupImageGrid();
+        }
 
+        cameraButton = findViewById(R.id.button_camera);
+        cameraButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if ((!storageWritePermissionGranted) || (!cameraPermissionGranted)) {
+                    checkCameraAndStoragePermissions();
+                    return;
+                }
+                dispatchCaptureIntent();
+            }
+        });
+    }
+
+    private void setupImageGrid() {
+        createImageFolder();
         imageGridView = findViewById(R.id.gridview_images);
         imageGridView.setAdapter(new ImageAdapter(this));
         imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -128,25 +151,6 @@ public class PictureActivity extends Activity {
                 Toast.makeText(getApplicationContext(),
                         "(" + position + "/" + imageGridView.getCount() + "): " + clickedImage.toString(),
                         Toast.LENGTH_SHORT).show();
-            }
-        });
-        Log.d("cameradebug", "height: " + getResources().getDisplayMetrics().heightPixels);
-        Log.d("cameradebug", "width: " + getResources().getDisplayMetrics().widthPixels);
-        //imageGridView.setColumnWidth((int) (getResources().getDisplayMetrics().heightPixels) / 3);
-
-        cameraButton = findViewById(R.id.button_camera);
-        cameraButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!storageWritePermissionGranted) {
-                    checkStorageWritePermission();
-                    return;
-                }
-                if (!cameraPermissionGranted) {
-                    checkCameraPermission();
-                    return;
-                }
-                dispatchCaptureIntent();
             }
         });
     }
@@ -177,7 +181,9 @@ public class PictureActivity extends Activity {
                 if (resultCode == RESULT_OK) {
                     // rename image file so that timestamp is correct
                     try {
-                        if (!lastImageFile.renameTo(createImageFile())) {
+                        if (lastImageFile.renameTo(createImageFile())) {
+                            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
+                        } else {
                             Toast.makeText(this, "Renaming failed, timestamp of image " +
                                     "in 'Beetags' folder may be wrong.", Toast.LENGTH_SHORT).show();
                         }
@@ -242,6 +248,7 @@ public class PictureActivity extends Activity {
                      if (permissions[i].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                          if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                              storageWritePermissionGranted = true;
+                             setupImageGrid();
                          }
                      } else if (permissions[i].equals(Manifest.permission.CAMERA)) {
                          if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
