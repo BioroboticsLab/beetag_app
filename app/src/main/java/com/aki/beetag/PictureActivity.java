@@ -19,10 +19,8 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
@@ -30,12 +28,18 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import static com.bumptech.glide.request.RequestOptions.centerCropTransform;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
+
 
 public class PictureActivity extends Activity {
 
@@ -65,6 +69,7 @@ public class PictureActivity extends Activity {
         public ImageAdapter(Context c) {
             this.context = c;
             imageFiles = imageFolder.listFiles();
+            Arrays.sort(imageFiles, Collections.reverseOrder());
         }
 
         @Override
@@ -87,30 +92,31 @@ public class PictureActivity extends Activity {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(int position, View recycledView, ViewGroup parent) {
             ImageView imageView;
-            int thumbnailSize = ((GridView) parent).getColumnWidth();
-            Log.d("cameradebug", "thumbnail size: " + thumbnailSize);
-            if (convertView == null) {
+            if (recycledView == null) {
                 imageView = new ImageView(context);
-                imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                imageView.setPadding(2, 2, 2, 2);
             } else {
-                imageView = (ImageView) convertView;
-                imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
-                imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-                imageView.setPadding(2, 2, 2, 2);
+                imageView = (ImageView) recycledView;
             }
-            // TODO limit thumbnail size (250x250?)
-            Bitmap thumbnail = ThumbnailUtils.extractThumbnail(BitmapFactory.decodeFile(imageFiles[position].getPath()), thumbnailSize, thumbnailSize);
-            imageView.setImageBitmap(thumbnail);
+
+            String imageUrl = imageFiles[position].toString();
+
+            int thumbnailSize = ((GridView) parent).getColumnWidth();
+            imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+
+            Glide.with(context)
+                    .load(imageUrl)
+                    .apply(centerCropTransform())
+                    .into(imageView);
+
             return imageView;
         }
 
         @Override
         public void notifyDataSetChanged() {
             imageFiles = imageFolder.listFiles();
+            Arrays.sort(imageFiles, Collections.reverseOrder());
             super.notifyDataSetChanged();
         }
     }
