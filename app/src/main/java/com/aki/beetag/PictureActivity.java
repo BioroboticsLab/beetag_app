@@ -97,13 +97,13 @@ public class PictureActivity extends Activity {
                 imageView = (ImageView) recycledView;
             }
 
-            String imageUrl = imageFiles[position].toString();
+            String imageUri = imageFiles[position].toString();
 
             int thumbnailSize = ((GridView) parent).getColumnWidth();
             imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
 
             Glide.with(context)
-                    .load(imageUrl)
+                    .load(imageUri)
                     .apply(centerCropTransform())
                     .into(imageView);
 
@@ -121,10 +121,9 @@ public class PictureActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_picture);
 
         checkCameraAndStoragePermissions();
-
-        setContentView(R.layout.activity_picture);
 
         if (storageWritePermissionGranted) {
             setupImageGrid();
@@ -150,10 +149,14 @@ public class PictureActivity extends Activity {
         imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                File clickedImage = (File) imageGridView.getItemAtPosition(position);
+                File clickedImage = (File) parent.getItemAtPosition(position);
                 Toast.makeText(getApplicationContext(),
-                        "(" + position + "/" + imageGridView.getCount() + "): " + clickedImage.toString(),
+                        "(" + position + "/" + parent.getCount() + "): " + clickedImage.toString(),
                         Toast.LENGTH_SHORT).show();
+
+                Intent displayImageIntent = new Intent(getApplicationContext(), TagActivity.class);
+                displayImageIntent.setData(Uri.fromFile(clickedImage));
+                startActivity(displayImageIntent);
             }
         });
     }
