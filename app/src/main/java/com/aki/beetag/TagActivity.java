@@ -7,11 +7,9 @@ import android.os.Bundle;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
-import com.github.chrisbanes.photoview.PhotoView;
 
 public class TagActivity extends Activity {
 
-    //private PhotoView photoView;
     private SubsamplingScaleImageView imageView;
 
     @Override
@@ -22,10 +20,11 @@ public class TagActivity extends Activity {
         Intent intent = getIntent();
         Uri imageUri = intent.getData();
 
-        //photoView = findViewById(R.id.photo_view);
-        //photoView.setImageURI(imageUri);
-
         imageView = findViewById(R.id.imageView);
+        imageView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
+        imageView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
+        imageView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
         imageView.setImage(ImageSource.uri(imageUri));
+
     }
 }
