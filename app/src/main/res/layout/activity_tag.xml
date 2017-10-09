@@ -13,4 +13,18 @@
         tools:layout_editor_absoluteY="8dp"
         tools:layout_editor_absoluteX="8dp" />
 
+    <ImageButton
+        android:id="@+id/button_tag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="50dp"
+        android:layout_marginEnd="50dp"
+        android:visibility="visible"
+        android:background="?android:selectableItemBackground"
+        android:src="@mipmap/tag_check" />
+
+
+
 </RelativeLayout>
