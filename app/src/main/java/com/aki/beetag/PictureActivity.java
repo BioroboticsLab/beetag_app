@@ -156,6 +156,7 @@ public class PictureActivity extends Activity {
 
                 Intent displayImageIntent = new Intent(getApplicationContext(), TagActivity.class);
                 displayImageIntent.setData(Uri.fromFile(clickedImage));
+                displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
                 startActivity(displayImageIntent);
             }
         });

@@ -6,12 +6,12 @@
     android:layout_height="match_parent"
     tools:context="com.aki.beetag.TagActivity">
 
-    <com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
-        android:id="@+id/imageView"
+    <com.aki.beetag.TagView
+        android:id="@+id/tag_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:layout_editor_absoluteY="8dp"
-        tools:layout_editor_absoluteX="8dp" />
+        tools:layout_editor_absoluteX="8dp"
+        tools:layout_editor_absoluteY="8dp" />
 
     <ImageButton
         android:id="@+id/button_tag"
