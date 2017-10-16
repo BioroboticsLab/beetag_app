@@ -15,7 +15,6 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -38,7 +37,7 @@ import java.util.Date;
 import java.util.Locale;
 
 
-public class PictureActivity extends Activity {
+public class GalleryActivity extends Activity {
 
     private static final int REQUEST_PERMISSION_EXTERNAL_STORAGE = 0;
     private static final int REQUEST_PERMISSION_CAMERA = 1;
@@ -121,7 +120,7 @@ public class PictureActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_picture);
+        setContentView(R.layout.activity_gallery);
 
         checkCameraAndStoragePermissions();
 
@@ -144,7 +143,7 @@ public class PictureActivity extends Activity {
 
     private void setupImageGrid() {
         createImageFolder();
-        imageGridView = findViewById(R.id.gridview_images);
+        imageGridView = findViewById(R.id.gridview_gallery);
         imageGridView.setAdapter(new ImageAdapter(this));
         imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
