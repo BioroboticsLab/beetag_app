@@ -188,11 +188,13 @@ public class PictureActivity extends Activity {
                 if (resultCode == RESULT_OK) {
                     // rename image file so that timestamp is correct
                     try {
+                        // TODO: take exif date instead of current date
                         if (lastImageFile.renameTo(createImageFile())) {
                             ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                         } else {
                             Toast.makeText(this, "Renaming failed, timestamp of image " +
                                     "in 'Beetags' folder may be wrong.", Toast.LENGTH_SHORT).show();
+                            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -212,6 +214,7 @@ public class PictureActivity extends Activity {
     protected void onResume() {
         super.onResume();
         startBackgroundThread();
+        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
     }
 
     @Override

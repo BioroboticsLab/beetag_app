@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.net.Uri;
@@ -72,6 +73,9 @@ public class TagActivity extends Activity {
                     tagCenter = new PointF(imageWidth-tagCenter.y, tagCenter.x);
                 }
 
+                Matrix rotationMatrix = new Matrix();
+                rotationMatrix.postRotate(imageOrientation);
+
                 ImageSquare cropSquare = new ImageSquare(tagCenter, cropSizeInPx / tagScale);
                 Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
                 Bitmap croppedTag = Bitmap.createBitmap(
@@ -79,7 +83,10 @@ public class TagActivity extends Activity {
                         imageCropZone.left,
                         imageCropZone.top,
                         imageCropZone.right - imageCropZone.left,
-                        imageCropZone.bottom - imageCropZone.top);
+                        imageCropZone.bottom - imageCropZone.top,
+                        rotationMatrix,
+                        // TODO: check results with filter = true
+                        false);
 
                 FileOutputStream out = null;
                 try {
