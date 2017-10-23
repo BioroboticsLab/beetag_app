@@ -51,8 +51,8 @@ public class TagActivity extends Activity {
                 }
 
                 PointF tagCenter = tagView.getCenter();
-                float tagScale = tagView.getScale();
-                int cropSizeInPx = tagView.getTagCircleRadius() * 2;
+                float zoomScale = tagView.getScale();
+                int cropCircleScreenSize = tagView.getTagCircleRadius() * 2;
 
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 //options.inJustDecodeBounds = true;
@@ -75,8 +75,12 @@ public class TagActivity extends Activity {
 
                 Matrix rotationMatrix = new Matrix();
                 rotationMatrix.postRotate(imageOrientation);
+                float tagSizeInPx = cropCircleScreenSize / zoomScale;
+                float tagScaleTo50 = 50 / tagSizeInPx;
+                rotationMatrix.postScale(tagScaleTo50, tagScaleTo50);
 
-                ImageSquare cropSquare = new ImageSquare(tagCenter, cropSizeInPx / tagScale);
+                // increase crop square by 10% on each side for padding
+                ImageSquare cropSquare = new ImageSquare(tagCenter, tagSizeInPx * 1.2f);
                 Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
                 Bitmap croppedTag = Bitmap.createBitmap(
                         imageBitmap,

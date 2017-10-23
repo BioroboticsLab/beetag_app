@@ -20,6 +20,7 @@ public class DetectionServerHandler {
 
     }
 
-    private String getUrlParamsString(Map<String, String>) {
+    private String getUrlParamsString(Map<String, String> params) {
+        return null;
     }
 }

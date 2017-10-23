@@ -213,7 +213,9 @@ public class GalleryActivity extends Activity {
     protected void onResume() {
         super.onResume();
         startBackgroundThread();
-        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
+        if (imageGridView != null) {
+            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
+        }
     }
 
     @Override
