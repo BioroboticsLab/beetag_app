@@ -8,6 +8,7 @@ import org.json.JSONException;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,8 +30,21 @@ public class TagDecodingServerHandler {
             connection.setChunkedStreamingMode(0);
             OutputStream out = new BufferedOutputStream(connection.getOutputStream());
             image.compress(Bitmap.CompressFormat.PNG, 100, out);
+            out.flush();
+            out.close();
+
             InputStream in = new BufferedInputStream(connection.getInputStream());
-            // TODO: read input stream, unpack with messagepack
+            ByteArrayOutputStream data = new ByteArrayOutputStream();
+            int bufferSize = 1024;
+            byte[] buffer = new byte[bufferSize];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer, 0, bufferSize)) != -1) {
+                data.write(buffer, 0, bytesRead);
+            }
+            data.flush();
+            byte[] response = data.toByteArray();
+
+
         } catch (IOException e) {
             e.printStackTrace();
         }
