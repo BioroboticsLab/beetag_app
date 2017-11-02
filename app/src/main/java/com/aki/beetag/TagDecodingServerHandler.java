@@ -5,6 +5,8 @@ import android.net.Uri;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.msgpack.core.MessagePack;
+import org.msgpack.core.MessageUnpacker;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -17,6 +19,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class TagDecodingServerHandler {
@@ -34,6 +37,8 @@ public class TagDecodingServerHandler {
             out.close();
 
             InputStream in = new BufferedInputStream(connection.getInputStream());
+
+            /*
             ByteArrayOutputStream data = new ByteArrayOutputStream();
             int bufferSize = 1024;
             byte[] buffer = new byte[bufferSize];
@@ -43,7 +48,24 @@ public class TagDecodingServerHandler {
             }
             data.flush();
             byte[] response = data.toByteArray();
+            */
 
+            MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
+            int mapSize = unpacker.unpackMapHeader();
+            for (int i = 0; i < mapSize; i++) {
+                String key = unpacker.unpackString();
+                switch (key) {
+                    case "IDs":
+                        int idsLength = unpacker.unpackArrayHeader();
+                        ArrayList<ArrayList<Integer>> idlist = new ArrayList<>();
+                        for (int j = 0; j < idsLength; j++) {
+                            ArrayList<Integer> id = new ArrayList<>();
+                            int idLength = unpacker.unpackArrayHeader();
+                            // TODO
+                        }
+                        break;
+                }
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
