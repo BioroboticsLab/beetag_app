@@ -2,6 +2,8 @@ package com.aki.beetag;
 
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -22,58 +24,80 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import ar.com.hjg.pngj.ImageInfo;
+import ar.com.hjg.pngj.PngWriter;
+
 public class TagDecodingServerHandler {
 
-    private void SendRequestForResult(URL url, Bitmap image) {
+    private HttpURLConnection connection;
+    private URL url;
+
+    public TagDecodingServerHandler() {
         try {
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/octet-stream");
-            connection.setDoOutput(true);
-            connection.setChunkedStreamingMode(0);
-            OutputStream out = new BufferedOutputStream(connection.getOutputStream());
-            image.compress(Bitmap.CompressFormat.PNG, 100, out);
-            out.flush();
-            out.close();
-
-            InputStream in = new BufferedInputStream(connection.getInputStream());
-
-            /*
-            ByteArrayOutputStream data = new ByteArrayOutputStream();
-            int bufferSize = 1024;
-            byte[] buffer = new byte[bufferSize];
-            int bytesRead;
-            while ((bytesRead = in.read(buffer, 0, bufferSize)) != -1) {
-                data.write(buffer, 0, bytesRead);
-            }
-            data.flush();
-            byte[] response = data.toByteArray();
-            */
-
-            MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
-            int mapSize = unpacker.unpackMapHeader();
-            for (int i = 0; i < mapSize; i++) {
-                String key = unpacker.unpackString();
-                switch (key) {
-                    case "IDs":
-                        int idsLength = unpacker.unpackArrayHeader();
-                        ArrayList<ArrayList<Integer>> idlist = new ArrayList<>();
-                        for (int j = 0; j < idsLength; j++) {
-                            ArrayList<Integer> id = new ArrayList<>();
-                            int idLength = unpacker.unpackArrayHeader();
-                            // TODO
-                        }
-                        break;
-                }
-            }
-
-        } catch (IOException e) {
+            url = buildUrl();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
             e.printStackTrace();
         }
     }
 
+    public OutputStream getOutputStream() {
+        try {
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/octet-stream");
+            connection.setDoOutput(true);
+            connection.setChunkedStreamingMode(0);
+            connection.getOutputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void sendRequestForResult(Bitmap croppedTag) {
+        try {
+            new Thread(new ServerRequestRunnable(buildUrl(), croppedTag)).start();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        /*
+        ByteArrayOutputStream data = new ByteArrayOutputStream();
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+        int bytesRead;
+        while ((bytesRead = in.read(buffer, 0, bufferSize)) != -1) {
+            data.write(buffer, 0, bytesRead);
+        }
+        data.flush();
+        byte[] response = data.toByteArray();
+        */
+
+        /*
+        MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
+        int mapSize = unpacker.unpackMapHeader();
+        for (int i = 0; i < mapSize; i++) {
+            String key = unpacker.unpackString();
+            switch (key) {
+                case "IDs":
+                    int idsLength = unpacker.unpackArrayHeader();
+                    ArrayList<ArrayList<Integer>> idlist = new ArrayList<>();
+                    for (int j = 0; j < idsLength; j++) {
+                        ArrayList<Integer> id = new ArrayList<>();
+                        int idLength = unpacker.unpackArrayHeader();
+                        // TODO
+                    }
+                    break;
+            }
+        }
+        */
+    }
+
     private URL buildUrl() throws JSONException, MalformedURLException {
-        String address = "http://tonic.imp.fu-berlin.de:10000/process";
+        String address = "http://18bf2c15.ngrok.io/process";
 
         JSONArray output = new JSONArray(new String[] {"IDs"});
         HashMap<String, String> params = new HashMap<>();

@@ -365,6 +365,12 @@ public class GalleryActivity extends Activity {
                 }
                 permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) ==
+                    PackageManager.PERMISSION_GRANTED) {
+
+            } else {
+                permissions.add(Manifest.permission.INTERNET);
+            }
             if (!permissions.isEmpty()) {
                 requestPermissions(permissions.toArray(new String[0]), REQUEST_PERMISSION_MULTIPLE);
             }

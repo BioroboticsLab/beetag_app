@@ -99,12 +99,15 @@ public class TagActivity extends Activity {
                         rotationMatrix,
                         // TODO: check results with filter = true
                         false);
-
+                TagDecodingServerHandler serverHandler = new TagDecodingServerHandler();
+                serverHandler.sendRequestForResult(croppedTag);
+                /*
                 int cutoutWidth = croppedTag.getWidth();
                 int cutoutHeight = croppedTag.getHeight();
-                FileOutputStream out = null;
+                BufferedOutputStream out = null;
                 try {
-                    out = new FileOutputStream(createImageFile());
+                    TagDecodingServerHandler serverHandler = new TagDecodingServerHandler();
+                    out = new BufferedOutputStream(serverHandler.getOutputStream());
                     ImageInfo imgInfo = new ImageInfo(croppedTag.getWidth(), croppedTag.getHeight(), 8, false, true, false);
                     PngWriter pngWriter = new PngWriter(out, imgInfo);
                     int[] grayLine = new int[cutoutWidth];
@@ -119,17 +122,11 @@ public class TagActivity extends Activity {
                         pngWriter.writeRowInt(grayLine);
                     }
                     pngWriter.end();
+                    serverHandler.sendRequestForResult(out);
                 } catch (Exception e) {
                     e.printStackTrace();
-                } finally {
-                    try {
-                        if (out != null) {
-                            out.close();
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
+                */
             }
         });
 
