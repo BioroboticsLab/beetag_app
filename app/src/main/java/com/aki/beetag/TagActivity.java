@@ -18,12 +18,19 @@ import android.widget.Toast;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import ar.com.hjg.pngj.ImageInfo;
+import ar.com.hjg.pngj.ImageLineByte;
+import ar.com.hjg.pngj.ImageLineHelper;
+import ar.com.hjg.pngj.ImageLineInt;
+import ar.com.hjg.pngj.PngWriter;
 
 public class TagActivity extends Activity {
 
@@ -93,10 +100,25 @@ public class TagActivity extends Activity {
                         // TODO: check results with filter = true
                         false);
 
+                int cutoutWidth = croppedTag.getWidth();
+                int cutoutHeight = croppedTag.getHeight();
                 FileOutputStream out = null;
                 try {
                     out = new FileOutputStream(createImageFile());
-                    croppedTag.compress(Bitmap.CompressFormat.PNG, 100, out);
+                    ImageInfo imgInfo = new ImageInfo(croppedTag.getWidth(), croppedTag.getHeight(), 8, false, true, false);
+                    PngWriter pngWriter = new PngWriter(out, imgInfo);
+                    int[] grayLine = new int[cutoutWidth];
+                    for (int y = 0; y < cutoutHeight; y++) {
+                        for (int x = 0; x < cutoutWidth; x++) {
+                            int pixel = croppedTag.getPixel(x, y);
+                            int grayValue = (int) (0.2125 * ((pixel >> 16) & 0xff));
+                            grayValue += (int) (0.7154 * ((pixel >> 8) & 0xff));
+                            grayValue += (int) (0.0721 * (pixel & 0xff));
+                            grayLine[x] = grayValue;
+                        }
+                        pngWriter.writeRowInt(grayLine);
+                    }
+                    pngWriter.end();
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
