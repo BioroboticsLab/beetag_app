@@ -3,12 +3,16 @@ package com.aki.beetag;
 import android.graphics.Bitmap;
 import android.util.Log;
 
+import org.msgpack.core.MessagePack;
+import org.msgpack.core.MessageUnpacker;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
@@ -34,6 +38,7 @@ public class ServerRequestRunnable implements Runnable {
             int cutoutWidth = bitmap.getWidth();
             int cutoutHeight = bitmap.getHeight();
             BufferedOutputStream out = null;
+            InputStream in = null;
             try {
                 out = new BufferedOutputStream(connection.getOutputStream());
                 ImageInfo imgInfo = new ImageInfo(bitmap.getWidth(), bitmap.getHeight(), 8, false, true, false);
@@ -50,14 +55,37 @@ public class ServerRequestRunnable implements Runnable {
                     pngWriter.writeRowInt(grayLine);
                 }
                 pngWriter.end();
+                Thread.sleep(10000);
+                in = new BufferedInputStream(connection.getInputStream());
+                Thread.sleep(5000);
+                //Log.d("cameradebug", "read(): " + in.read());
+                Log.d("cameradebug", "available(): " + in.available());
+                MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
+                int mapSize = unpacker.unpackMapHeader();
+                for (int i = 0; i < mapSize; i++) {
+                    String key = unpacker.unpackString();
+                    switch (key) {
+                        case "IDs":
+                            int idsListLength = unpacker.unpackArrayHeader();
+                            ArrayList<ArrayList<Integer>> idList = new ArrayList<>();
+                            for (int j = 0; j < idsListLength; j++) {
+                                ArrayList<Integer> id = new ArrayList<>();
+                                int idLength = unpacker.unpackArrayHeader();
+                                for (int k = 0; k < idLength; k++) {
+                                    id.add(unpacker.unpackInt());
+                                }
+                                idList.add(id);
+                            }
+                            Log.d("cameradebug", "IDs: " + idList);
+                            break;
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                out.flush();
                 out.close();
+                connection.disconnect();
             }
-            InputStream in = new BufferedInputStream(connection.getInputStream());
-            Log.d("cameradebug", "" + in.available());
         } catch (IOException e) {
             e.printStackTrace();
         }

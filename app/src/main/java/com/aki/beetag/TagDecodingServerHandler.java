@@ -97,7 +97,7 @@ public class TagDecodingServerHandler {
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {
-        String address = "http://18bf2c15.ngrok.io/process";
+        String address = "http://15c6b049.ngrok.io/process";
 
         JSONArray output = new JSONArray(new String[] {"IDs"});
         HashMap<String, String> params = new HashMap<>();
