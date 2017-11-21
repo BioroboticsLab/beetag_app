@@ -10,6 +10,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -33,14 +34,16 @@ public class ServerRequestRunnable implements Runnable {
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/octet-stream");
+            connection.setFixedLengthStreamingMode(50);
             connection.setDoOutput(true);
-            connection.setChunkedStreamingMode(0);
+            //connection.setChunkedStreamingMode(0);
             int cutoutWidth = bitmap.getWidth();
             int cutoutHeight = bitmap.getHeight();
             BufferedOutputStream out = null;
             InputStream in = null;
             try {
                 out = new BufferedOutputStream(connection.getOutputStream());
+                /*
                 ImageInfo imgInfo = new ImageInfo(bitmap.getWidth(), bitmap.getHeight(), 8, false, true, false);
                 PngWriter pngWriter = new PngWriter(out, imgInfo);
                 int[] grayLine = new int[cutoutWidth];
@@ -55,9 +58,13 @@ public class ServerRequestRunnable implements Runnable {
                     pngWriter.writeRowInt(grayLine);
                 }
                 pngWriter.end();
-                Thread.sleep(10000);
+                */
+                for (int i = 0; i < 50; i++) {
+                    out.write(i);
+                    Log.d("cameradebug", "wrote " + i);
+                }
+                out.flush();
                 in = new BufferedInputStream(connection.getInputStream());
-                Thread.sleep(5000);
                 //Log.d("cameradebug", "read(): " + in.read());
                 Log.d("cameradebug", "available(): " + in.available());
                 MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
