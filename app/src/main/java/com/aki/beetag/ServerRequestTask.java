@@ -1,6 +1,7 @@
 package com.aki.beetag;
 
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -20,18 +21,14 @@ import java.util.ArrayList;
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
 
-public class ServerRequestRunnable implements Runnable {
+public class ServerRequestTask extends AsyncTask<ServerRequestData, Void, ArrayList<ArrayList<Double>>> {
 
-    private URL url;
-    private Bitmap bitmap;
+    private Bitmap retrieveBitmap(ServerRequestData data) {
 
-    public ServerRequestRunnable(URL address, Bitmap image) {
-        url = address;
-        bitmap = image;
     }
 
     @Override
-    public void run() {
+    protected ArrayList<ArrayList<Double>> doInBackground(ServerRequestData... serverRequestData) {
         // Intermediate stream that the PNG is written to.
         // After writing, the connection is opened with the
         // appropriate data length.
@@ -93,10 +90,11 @@ public class ServerRequestRunnable implements Runnable {
                         }
                         if (idList.isEmpty()) {
                             Log.d("cameradebug", "No bee tags :(");
+                            return idList;
                         } else {
                             Log.d("cameradebug", "IDs: " + idList);
+                            return idList;
                         }
-                        break;
                 }
             }
         } catch (IOException e) {
@@ -109,5 +107,6 @@ public class ServerRequestRunnable implements Runnable {
                 e.printStackTrace();
             }
         }
+        return new ArrayList<>();
     }
 }
