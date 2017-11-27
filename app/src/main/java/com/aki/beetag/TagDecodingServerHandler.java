@@ -97,7 +97,7 @@ public class TagDecodingServerHandler {
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {
-        String address = "http://180dd7e0.ngrok.io/process";
+        String address = "http://f453b557.ngrok.io/process";
 
         JSONArray output = new JSONArray(new String[] {"IDs"});
         HashMap<String, String> params = new HashMap<>();
@@ -106,26 +106,26 @@ public class TagDecodingServerHandler {
         return new URL(address + buildUrlParamsString(params));
     }
 
-    // from a HashMap of key/value pairs, return the (percent encoded) URL query string
+    // from a HashMap of key/value pairs, return the URL query string;
+    // values are percent-encoded
     private String buildUrlParamsString(HashMap<String, String> params) {
         StringBuilder stringBuilder = new StringBuilder();
         boolean first = true;
-        for (HashMap.Entry<String, String> entry : params.entrySet()) {
-            if (!first) {
-                stringBuilder.append("&");
-            } else {
-                stringBuilder.append("?");
-                first = false;
-            }
-            stringBuilder.append(entry.getKey());
-            stringBuilder.append("=");
-            stringBuilder.append(entry.getValue());
-        }
         try {
-            return URLEncoder.encode(stringBuilder.toString(), "UTF-8");
+            for (HashMap.Entry<String, String> entry : params.entrySet()) {
+                if (!first) {
+                    stringBuilder.append("&");
+                } else {
+                    stringBuilder.append("?");
+                    first = false;
+                }
+                stringBuilder.append(entry.getKey());
+                stringBuilder.append("=");
+                stringBuilder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+            }
+            return stringBuilder.toString();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
-        } finally {
             return stringBuilder.toString();
         }
     }
