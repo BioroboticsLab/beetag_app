@@ -32,6 +32,6 @@ dependencies {
     annotationProcessor 'com.github.bumptech.glide:compiler:4.2.0'
     compile 'com.davemorrissey.labs:subsampling-scale-image-view:3.6.0'
     compile 'org.msgpack:msgpack-core:0.8.13'
-    implementation files('/home/aki/StudioProjects/beetag_app/libs/pngj-2.1.1.jar')
-    //implementation files('C:/Users/aki/AndroidStudioProjects/beetag_app/libs/pngj-2.1.1.jar')
+    //implementation files('/home/aki/StudioProjects/beetag_app/libs/pngj-2.1.1.jar')
+    implementation files('C:/Users/aki/AndroidStudioProjects/beetag_app/libs/pngj-2.1.1.jar')
 }
