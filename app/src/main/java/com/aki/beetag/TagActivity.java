@@ -11,7 +11,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -28,23 +27,16 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 
 import ar.com.hjg.pngj.ImageInfo;
-import ar.com.hjg.pngj.ImageLineByte;
-import ar.com.hjg.pngj.ImageLineHelper;
-import ar.com.hjg.pngj.ImageLineInt;
 import ar.com.hjg.pngj.PngWriter;
 
 public class TagActivity extends Activity {
@@ -158,13 +150,7 @@ public class TagActivity extends Activity {
                                 }
                                 idList.add(id);
                             }
-                            if (idList.isEmpty()) {
-                                Log.d("cameradebug", "No bee tags :(");
-                                return idList;
-                            } else {
-                                Log.d("cameradebug", "IDs: " + idList);
-                                return idList;
-                            }
+                            return idList;
                     }
                 }
             } catch (IOException e) {
@@ -183,11 +169,14 @@ public class TagActivity extends Activity {
 
         @Override
         protected void onPostExecute(ArrayList<ArrayList<Double>> result) {
-            ArrayList<Integer> id = new ArrayList<>();
             if (result.size() > 1) {
-                Toast.makeText(getApplicationContext(), "More than one ID returned!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "More than one ID returned!", Toast.LENGTH_LONG).show();
+                return;
+            } else if (result.isEmpty()) {
+                Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
                 return;
             }
+            ArrayList<Integer> id = new ArrayList<>();
             for (double detection : result.get(0)) {
                 id.add((int) Math.round(detection));
             }

@@ -4,7 +4,6 @@ package com.aki.beetag;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
-import android.support.constraint.solver.widgets.Rectangle;
 
 public class ImageSquare {
 
