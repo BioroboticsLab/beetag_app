@@ -39,16 +39,11 @@ import java.util.Locale;
 
 public class GalleryActivity extends Activity {
 
-    private static final int REQUEST_PERMISSION_EXTERNAL_STORAGE = 0;
-    private static final int REQUEST_PERMISSION_CAMERA = 1;
-    private static final int REQUEST_PERMISSION_MULTIPLE = 2;
+    private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
     private ImageButton cameraButton;
     private GridView imageGridView;
-
-    private HandlerThread backgroundHandlerThread;
-    private Handler backgroundHandler;
 
     private boolean storageWritePermissionGranted;
     private boolean cameraPermissionGranted;
@@ -122,7 +117,7 @@ public class GalleryActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
 
-        checkCameraAndStoragePermissions();
+        checkPermissions();
 
         if (storageWritePermissionGranted) {
             setupImageGrid();
@@ -133,7 +128,7 @@ public class GalleryActivity extends Activity {
             @Override
             public void onClick(View view) {
                 if ((!storageWritePermissionGranted) || (!cameraPermissionGranted)) {
-                    checkCameraAndStoragePermissions();
+                    checkPermissions();
                     return;
                 }
                 dispatchCaptureIntent();
@@ -192,7 +187,7 @@ public class GalleryActivity extends Activity {
                             ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                         } else {
                             Toast.makeText(this, "Renaming failed, timestamp of image " +
-                                    "in 'Beetags' folder may be wrong.", Toast.LENGTH_SHORT).show();
+                                    "in 'Beetags' folder may be wrong.", Toast.LENGTH_LONG).show();
                             ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                         }
                     } catch (IOException e) {
@@ -202,7 +197,7 @@ public class GalleryActivity extends Activity {
                     // delete image file
                     if (!lastImageFile.delete()) {
                         Toast.makeText(this, "Deletion failed, there may be empty " +
-                                "image files in 'Beetags' folder.", Toast.LENGTH_SHORT).show();
+                                "image files in 'Beetags' folder.", Toast.LENGTH_LONG).show();
                     }
                 }
                 break;
@@ -212,16 +207,9 @@ public class GalleryActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        startBackgroundThread();
         if (imageGridView != null) {
             ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
         }
-    }
-
-    @Override
-    protected void onPause() {
-        stopBackgroundThread();
-        super.onPause();
     }
 
     @Override
@@ -244,17 +232,7 @@ public class GalleryActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length <= 0) return;
         switch (requestCode) {
-            case REQUEST_PERMISSION_EXTERNAL_STORAGE:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    storageWritePermissionGranted = true;
-                }
-                break;
-            case REQUEST_PERMISSION_CAMERA:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    cameraPermissionGranted = true;
-                }
-                break;
-            case REQUEST_PERMISSION_MULTIPLE:
+            case REQUEST_PERMISSIONS:
                 for (int i = 0; i < grantResults.length; i++) {
                      if (permissions[i].equals(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                          if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
@@ -271,23 +249,6 @@ public class GalleryActivity extends Activity {
         }
     }
 
-    private void startBackgroundThread() {
-        backgroundHandlerThread = new HandlerThread("BackgroundThread");
-        backgroundHandlerThread.start();
-        backgroundHandler = new Handler(backgroundHandlerThread.getLooper());
-    }
-
-    private void stopBackgroundThread() {
-        backgroundHandlerThread.quitSafely();
-        try {
-            backgroundHandlerThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        backgroundHandlerThread = null;
-        backgroundHandler = null;
-    }
-
     private void createImageFolder() {
         File publicPictureFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
         imageFolder = new File(publicPictureFolder, "Beetags");
@@ -302,45 +263,7 @@ public class GalleryActivity extends Activity {
         return imgFile;
     }
 
-    private void checkStorageWritePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-                    PackageManager.PERMISSION_GRANTED) {
-                storageWritePermissionGranted = true;
-            } else {
-                storageWritePermissionGranted = false;
-                if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    Toast.makeText(this, "This app needs access to external storage to store the image files.",
-                            Toast.LENGTH_SHORT).show();
-                }
-                requestPermissions(new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_PERMISSION_EXTERNAL_STORAGE);
-            }
-        } else {
-            // in this case we can just act as if permission was granted
-            storageWritePermissionGranted = true;
-        }
-    }
-
-    private void checkCameraPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED) {
-                cameraPermissionGranted = true;
-            } else {
-                cameraPermissionGranted = false;
-                if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-                    Toast.makeText(this, "If you want to take your own pictures, this app needs " +
-                                    "access to the camera.", Toast.LENGTH_SHORT).show();
-                }
-                requestPermissions(new String[] {Manifest.permission.CAMERA}, REQUEST_PERMISSION_CAMERA);
-            }
-        } else {
-            // in this case we can just act as if permission was granted
-            cameraPermissionGranted = true;
-        }
-    }
-
-    private void checkCameraAndStoragePermissions() {
+    private void checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             ArrayList<String> permissions = new ArrayList<String>();
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
@@ -350,7 +273,7 @@ public class GalleryActivity extends Activity {
                 cameraPermissionGranted = false;
                 if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
                     Toast.makeText(this, "If you want to take your own pictures, this app needs " +
-                            "access to the camera.", Toast.LENGTH_SHORT).show();
+                            "access to the camera.", Toast.LENGTH_LONG).show();
                 }
                 permissions.add(Manifest.permission.CAMERA);
             }
@@ -361,18 +284,12 @@ public class GalleryActivity extends Activity {
                 storageWritePermissionGranted = false;
                 if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     Toast.makeText(this, "This app needs access to external storage to store the image files.",
-                            Toast.LENGTH_SHORT).show();
+                            Toast.LENGTH_LONG).show();
                 }
                 permissions.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
             }
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) ==
-                    PackageManager.PERMISSION_GRANTED) {
-
-            } else {
-                permissions.add(Manifest.permission.INTERNET);
-            }
             if (!permissions.isEmpty()) {
-                requestPermissions(permissions.toArray(new String[0]), REQUEST_PERMISSION_MULTIPLE);
+                requestPermissions(permissions.toArray(new String[0]), REQUEST_PERMISSIONS);
             }
         } else {
             // in this case we can just act as if permission was granted
