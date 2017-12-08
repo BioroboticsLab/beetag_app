@@ -34,7 +34,7 @@
                 android:resource="@xml/filepaths"></meta-data>
         </provider>
 
-        <activity android:name=".TagActivity"></activity>
+        <activity android:name=".DecodingActivity"></activity>
     </application>
 
 </manifest>

@@ -39,14 +39,14 @@ import java.util.HashMap;
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
 
-public class TagActivity extends Activity {
+public class DecodingActivity extends Activity {
 
     private TagView tagView;
     private ImageButton tagButton;
     private File imageFolder;
     private Uri imageUri;
 
-    public class ServerRequestTask extends AsyncTask<ServerRequestData, Void, ArrayList<ArrayList<Double>>> {
+    private class ServerRequestTask extends AsyncTask<ServerRequestData, Void, ArrayList<ArrayList<Double>>> {
 
         @Override
         protected ArrayList<ArrayList<Double>> doInBackground(ServerRequestData... serverRequestData) {
@@ -157,9 +157,15 @@ public class TagActivity extends Activity {
                 e.printStackTrace();
             } finally {
                 try {
-                    out.close();
-                    in.close();
-                    connection.disconnect();
+                    if (out != null) {
+                        out.close();
+                    }
+                    if (in != null) {
+                        in.close();
+                    }
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -230,6 +236,7 @@ public class TagActivity extends Activity {
         tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
         tagView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
+        tagView.setImageUri(imageUri);
         tagView.setImage(ImageSource.uri(imageUri));
     }
 

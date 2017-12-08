@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.aki.beetag.TagActivity">
+    tools:context="com.aki.beetag.DecodingActivity">
 
     <com.aki.beetag.TagView
         android:id="@+id/tag_view"

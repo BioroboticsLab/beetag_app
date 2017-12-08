@@ -9,8 +9,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
@@ -148,7 +146,7 @@ public class GalleryActivity extends Activity {
                         "(" + position + "/" + parent.getCount() + "): " + clickedImage.toString(),
                         Toast.LENGTH_SHORT).show();
 
-                Intent displayImageIntent = new Intent(getApplicationContext(), TagActivity.class);
+                Intent displayImageIntent = new Intent(getApplicationContext(), DecodingActivity.class);
                 displayImageIntent.setData(Uri.fromFile(clickedImage));
                 displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
                 startActivity(displayImageIntent);
