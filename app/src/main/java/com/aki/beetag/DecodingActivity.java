@@ -1,7 +1,10 @@
 package com.aki.beetag;
 
 import android.app.Activity;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -10,6 +13,7 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -35,6 +39,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
@@ -45,6 +50,10 @@ public class DecodingActivity extends Activity {
     private ImageButton tagButton;
     private File imageFolder;
     private Uri imageUri;
+    private String imageName;
+
+    private TagDatabase database = null;
+    private TagDao dao;
 
     private class ServerRequestTask extends AsyncTask<ServerRequestData, Void, ArrayList<ArrayList<Double>>> {
 
@@ -175,6 +184,7 @@ public class DecodingActivity extends Activity {
 
         @Override
         protected void onPostExecute(ArrayList<ArrayList<Double>> result) {
+            /*
             if (result.size() > 1) {
                 Toast.makeText(getApplicationContext(), "More than one ID returned!", Toast.LENGTH_LONG).show();
                 return;
@@ -182,11 +192,49 @@ public class DecodingActivity extends Activity {
                 Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
                 return;
             }
+            */
             ArrayList<Integer> id = new ArrayList<>();
+            /*
             for (double detection : result.get(0)) {
                 id.add((int) Math.round(detection));
             }
             Toast.makeText(getApplicationContext(), id.toString(), Toast.LENGTH_LONG).show();
+            */
+            Tag resultTag = new Tag();
+            resultTag.setEntryId((int) Math.round(Math.random()*10000));
+            resultTag.setBeeId(1337);
+            resultTag.setImageName(imageName);
+            PointF tagCenter = tagView.getCenter();
+            resultTag.setCenterX(tagCenter.x);
+            resultTag.setCenterY(tagCenter.y);
+            new DatabaseInsertTask().execute(resultTag);
+        }
+    }
+
+    private class DatabaseQueryTask extends AsyncTask<String, Void, List<Tag>> {
+
+        @Override
+        protected List<Tag> doInBackground(String... files) {
+            return dao.loadTagsByImage(files[0]);
+        }
+
+        @Override
+        protected void onPostExecute(List<Tag> tags) {
+            tagView.setTagsOnImage(tags);
+        }
+    }
+
+    private class DatabaseInsertTask extends AsyncTask<Tag, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Tag... tags) {
+            dao.insertTags();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            new DatabaseQueryTask().execute(imageName);
         }
     }
 
@@ -200,6 +248,18 @@ public class DecodingActivity extends Activity {
         imageFolder = new File(
                 ((Uri) intent.getExtras().get("imageFolder")).getPath()
         );
+
+        // get image name from uri
+        if (imageUri.getScheme().equals("file")) {
+            imageName = imageUri.getLastPathSegment();
+        } else {
+            imageName = "unknown";
+        }
+
+        RoomDatabase.Builder<TagDatabase> databaseBuilder = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database");
+        databaseBuilder.fallbackToDestructiveMigration();
+        database = databaseBuilder.build();
+        dao = database.getDao();
 
         tagButton = findViewById(R.id.button_tag);
         tagButton.setOnClickListener(new View.OnClickListener() {
@@ -227,7 +287,7 @@ public class DecodingActivity extends Activity {
                         tagCenter,
                         tagSizeInPx,
                         appliedOrientation);
-                ServerRequestTask requestTask = (ServerRequestTask) new ServerRequestTask().execute(tagData);
+                new ServerRequestTask().execute(tagData);
             }
         });
 
@@ -236,7 +296,7 @@ public class DecodingActivity extends Activity {
         tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
         tagView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
-        tagView.setImageUri(imageUri);
+        new DatabaseQueryTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
     }
 
@@ -271,5 +331,20 @@ public class DecodingActivity extends Activity {
             e.printStackTrace();
         }
         return stringBuilder.toString();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (database != null) {
+            database.close();
+        }
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        database = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database").build();
+        dao = database.getDao();
     }
 }

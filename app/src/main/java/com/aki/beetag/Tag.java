@@ -6,10 +6,10 @@ import android.arch.persistence.room.TypeConverters;
 
 import org.joda.time.DateTime;
 
-@Entity
+@Entity(tableName = "tag")
 @TypeConverters({DateTimeConverter.class})
 public class Tag {
-    @PrimaryKey
+    @PrimaryKey//(autoGenerate = true)
     private int entryId;
     private DateTime date;
     private int beeId;

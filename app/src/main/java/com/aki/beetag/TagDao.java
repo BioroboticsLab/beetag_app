@@ -6,17 +6,19 @@ import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.Query;
 import android.arch.persistence.room.Update;
 
+import java.util.List;
+
 @Dao
 public interface TagDao {
     @Insert
-    public void insertTags(Tag... tags);
+    void insertTags(Tag... tags);
 
     @Update
-    public void updateTags(Tag... tags);
+    void updateTags(Tag... tags);
 
     @Delete
-    public void deleteTags(Tag... tags);
+    void deleteTags(Tag... tags);
 
     @Query("SELECT * FROM tag WHERE imageName=:imageName")
-    public Tag[] loadTagsByImage(String imageName);
+    List<Tag> loadTagsByImage(String imageName);
 }
