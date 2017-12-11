@@ -48,6 +48,16 @@ public class TagView extends SubsamplingScaleImageView {
         Paint paint = new Paint();
         paint.setAntiAlias(true);
 
+        // tags
+        paint.setTextSize(40);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.argb(255, 0, 0, 0)); // black
+        PointF tagCenterInView;
+        for (Tag tag : tagsOnImage) {
+            tagCenterInView = sourceToViewCoord(tag.getCenterX(), tag.getCenterY());
+            canvas.drawText("" + tag.getBeeId(), tagCenterInView.x, tagCenterInView.y, paint);
+        }
+
         // tagging circle
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(2);
@@ -55,15 +65,6 @@ public class TagView extends SubsamplingScaleImageView {
         canvas.drawCircle(getWidth()/2, getHeight()/2, tagCircleRadius + strokeWidth, paint);
         paint.setColor(Color.argb(140, 0, 0, 0)); // black
         canvas.drawCircle(getWidth()/2, getHeight()/2, tagCircleRadius, paint);
-
-        // tags
-        paint.setTextSize(20);
-        paint.setStyle(Paint.Style.FILL);
-        PointF tagCenterInView;
-        for (Tag tag : tagsOnImage) {
-            tagCenterInView = sourceToViewCoord(tag.getCenterX(), tag.getCenterY());
-            canvas.drawText("" + tag.getBeeId(), tagCenterInView.x, tagCenterInView.y, paint);
-        }
     }
 
     public int getTagCircleRadius() {
@@ -72,5 +73,6 @@ public class TagView extends SubsamplingScaleImageView {
 
     public void setTagsOnImage(List<Tag> tags) {
         this.tagsOnImage = tags;
+        invalidate();
     }
 }

@@ -228,7 +228,7 @@ public class DecodingActivity extends Activity {
 
         @Override
         protected Void doInBackground(Tag... tags) {
-            dao.insertTags();
+            dao.insertTags(tags[0]);
             return null;
         }
 
@@ -339,6 +339,7 @@ public class DecodingActivity extends Activity {
         if (database != null) {
             database.close();
         }
+        dao = null;
     }
 
     @Override

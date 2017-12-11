@@ -34,7 +34,7 @@ dependencies {
     compile 'org.msgpack:msgpack-core:0.8.13'
     implementation 'android.arch.persistence.room:runtime:1.0.0'
     annotationProcessor 'android.arch.persistence.room:compiler:1.0.0'
-    //implementation files('/home/aki/StudioProjects/beetag_app/libs/pngj-2.1.1.jar')
-    implementation files('C:/Users/aki/AndroidStudioProjects/beetag_app/libs/pngj-2.1.1.jar')
+    implementation files('/home/aki/StudioProjects/beetag_app/libs/pngj-2.1.1.jar')
+    //implementation files('C:/Users/aki/AndroidStudioProjects/beetag_app/libs/pngj-2.1.1.jar')
     compile 'joda-time:joda-time:2.9.9'
 }
