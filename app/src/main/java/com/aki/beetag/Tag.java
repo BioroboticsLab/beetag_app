@@ -19,8 +19,8 @@ public class Tag {
     private String imageNameSingle;
     private float centerX;
     private float centerY;
-    private float size;
-    private int angle;
+    private float radius;
+    private double orientation;
 
     /* Getters and setters */
 
@@ -96,19 +96,19 @@ public class Tag {
         this.centerY = centerY;
     }
 
-    public float getSize() {
-        return size;
+    public float getRadius() {
+        return radius;
     }
 
-    public void setSize(float size) {
-        this.size = size;
+    public void setRadius(float radius) {
+        this.radius = radius;
     }
 
-    public int getAngle() {
-        return angle;
+    public double getOrientation() {
+        return orientation;
     }
 
-    public void setAngle(int angle) {
-        this.angle = angle;
+    public void setOrientation(double orientation) {
+        this.orientation = orientation;
     }
 }

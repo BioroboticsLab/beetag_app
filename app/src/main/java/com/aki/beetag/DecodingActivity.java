@@ -207,6 +207,7 @@ public class DecodingActivity extends Activity {
             PointF tagCenter = tagView.getCenter();
             resultTag.setCenterX(tagCenter.x);
             resultTag.setCenterY(tagCenter.y);
+            resultTag.setRadius(tagView.getTagCircleRadius() / tagView.getScale());
             new DatabaseInsertTask().execute(resultTag);
         }
     }
