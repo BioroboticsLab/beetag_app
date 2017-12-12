@@ -9,7 +9,7 @@ import org.joda.time.DateTime;
 @Entity(tableName = "tag")
 @TypeConverters({DateTimeConverter.class})
 public class Tag {
-    @PrimaryKey//(autoGenerate = true)
+    @PrimaryKey(autoGenerate = true)
     private int entryId;
     private DateTime date;
     private int beeId;
@@ -21,6 +21,32 @@ public class Tag {
     private float centerY;
     private float radius;
     private double orientation;
+
+    /*
+    Tag(
+            DateTime date,
+            int beeId,
+            String beeName,
+            String label,
+            String imageName,
+            String imageNameSingle,
+            float centerX,
+            float centerY,
+            float radius,
+            double orientation
+    ) {
+        this.date = date;
+        this.beeId = beeId;
+        this.beeName = beeName;
+        this.label = label;
+        this.imageName = imageName;
+        this.imageNameSingle = imageNameSingle;
+        this.centerX = centerX;
+        this.centerY = centerY;
+        this.radius = radius;
+        this.orientation = orientation;
+    }
+    */
 
     /* Getters and setters */
 

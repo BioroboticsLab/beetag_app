@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -13,8 +12,6 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -55,11 +52,11 @@ public class DecodingActivity extends Activity {
     private TagDatabase database = null;
     private TagDao dao;
 
-    private class ServerRequestTask extends AsyncTask<ServerRequestData, Void, ArrayList<ArrayList<Double>>> {
+    private class ServerRequestTask extends AsyncTask<DecodingData, Void, List<Tag>> {
 
         @Override
-        protected ArrayList<ArrayList<Double>> doInBackground(ServerRequestData... serverRequestData) {
-            ServerRequestData data = serverRequestData[0];
+        protected List<Tag> doInBackground(DecodingData... decodingData) {
+            DecodingData data = decodingData[0];
             BitmapFactory.Options options = new BitmapFactory.Options();
             Bitmap imageBitmap = BitmapFactory.decodeFile(new File(data.imageUri.getPath()).getAbsolutePath(), options);
             int imageWidth = options.outWidth;
@@ -129,6 +126,7 @@ public class DecodingActivity extends Activity {
             BufferedOutputStream out = null;
             BufferedInputStream in = null;
             HttpURLConnection connection = null;
+            List<Tag> tags = new ArrayList<>();
 
             try {
                 connection = (HttpURLConnection) data.serverUrl.openConnection();
@@ -143,24 +141,48 @@ public class DecodingActivity extends Activity {
                 pngStream.writeTo(out);
                 out.flush();
                 in = new BufferedInputStream(connection.getInputStream());
+
                 MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
                 int mapSize = unpacker.unpackMapHeader();
+                ArrayList<ArrayList<Integer>> ids = new ArrayList<>();
+                ArrayList<Double> orientations = new ArrayList<>();
                 for (int i = 0; i < mapSize; i++) {
                     String key = unpacker.unpackString();
                     switch (key) {
                         case "IDs":
                             int idsListLength = unpacker.unpackArrayHeader();
-                            ArrayList<ArrayList<Double>> idList = new ArrayList<>();
+                            ArrayList<Integer> id;
                             for (int j = 0; j < idsListLength; j++) {
-                                ArrayList<Double> id = new ArrayList<>();
+                                id = new ArrayList<>();
                                 int idLength = unpacker.unpackArrayHeader();
                                 for (int k = 0; k < idLength; k++) {
-                                    id.add(unpacker.unpackDouble());
+                                    id.add((int) Math.round(unpacker.unpackDouble()));
                                 }
-                                idList.add(id);
+                                ids.add(id);
                             }
-                            return idList;
+                            break;
+                        case "Orientations":
+                            int orientationListLength = unpacker.unpackArrayHeader();
+                            for (int j = 0; j < orientationListLength; j++) {
+                                orientations.add(unpacker.unpackDouble());
+                            }
+                            break;
                     }
+                }
+                int tagCount = Math.min(ids.size(), orientations.size());
+                for (int i = 0; i < tagCount; i++) {
+                    Tag tag = new Tag();
+                    tag.setCenterX(data.tagCenter.x);
+                    tag.setCenterY(data.tagCenter.y);
+                    tag.setRadius(data.tagSizeInPx / 2);
+                    tag.setImageName(imageName);
+                    tag.setOrientation(orientations.get(i));
+                    int beeId = 0;
+                    for (int j = 0; j < 12; j++) {
+                        beeId = beeId | (ids.get(i).get(j) << (11 - j));
+                    }
+                    tag.setBeeId(beeId);
+                    tags.add(tag);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -179,36 +201,30 @@ public class DecodingActivity extends Activity {
                     e.printStackTrace();
                 }
             }
-            return new ArrayList<>();
+            return tags;
         }
 
         @Override
-        protected void onPostExecute(ArrayList<ArrayList<Double>> result) {
-            /*
+        protected void onPostExecute(List<Tag> result) {
             if (result.size() > 1) {
-                Toast.makeText(getApplicationContext(), "More than one ID returned!", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Found more than one tag!", Toast.LENGTH_LONG).show();
                 return;
             } else if (result.isEmpty()) {
                 Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
+                Tag resultTag = new Tag();
+                resultTag.setBeeId(0);
+                resultTag.setImageName(imageName);
+                PointF tagCenter = tagView.getCenter();
+                resultTag.setCenterX(tagCenter.x);
+                resultTag.setCenterY(tagCenter.y);
+                resultTag.setRadius(tagView.getTagCircleRadius() / tagView.getScale());
+                resultTag.setOrientation(0);
+                new DatabaseInsertTask().execute(resultTag);
                 return;
             }
-            */
-            ArrayList<Integer> id = new ArrayList<>();
-            /*
-            for (double detection : result.get(0)) {
-                id.add((int) Math.round(detection));
-            }
-            Toast.makeText(getApplicationContext(), id.toString(), Toast.LENGTH_LONG).show();
-            */
-            Tag resultTag = new Tag();
-            resultTag.setEntryId((int) Math.round(Math.random()*10000));
-            resultTag.setBeeId(1337);
-            resultTag.setImageName(imageName);
-            PointF tagCenter = tagView.getCenter();
-            resultTag.setCenterX(tagCenter.x);
-            resultTag.setCenterY(tagCenter.y);
-            resultTag.setRadius(tagView.getTagCircleRadius() / tagView.getScale());
-            new DatabaseInsertTask().execute(resultTag);
+
+            new DatabaseInsertTask().execute(result.get(0));
+            Toast.makeText(getApplicationContext(), result.get(0).getBeeId(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -282,7 +298,7 @@ public class DecodingActivity extends Activity {
                 float tagSizeInPx = (tagView.getTagCircleRadius() * 2) / tagView.getScale();
                 int appliedOrientation = tagView.getAppliedOrientation();
 
-                ServerRequestData tagData = new ServerRequestData(
+                DecodingData tagData = new DecodingData(
                         serverUrl,
                         imageUri,
                         tagCenter,
