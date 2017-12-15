@@ -9,6 +9,10 @@ import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.TypedValue;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
@@ -46,6 +50,24 @@ public class TagView extends SubsamplingScaleImageView {
         paint = new Paint();
         paint.setAntiAlias(true);
         path = new Path();
+        final GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (!isReady()) {
+                    return true;
+                }
+
+                PointF tap = viewToSourceCoord(e.getX(), e.getY());
+                Toast.makeText(getContext(), tap.x + ", " + tap.y, Toast.LENGTH_SHORT).show();
+                return true;
+            }
+        });
+        setOnTouchListener(new OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return gestureDetector.onTouchEvent(motionEvent);
+            }
+        });
     }
 
     @Override
