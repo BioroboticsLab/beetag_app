@@ -7,13 +7,14 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Toast;
 
+import com.davemorrissey.labs.subscaleview.ImageViewState;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
 import java.util.List;
@@ -24,6 +25,16 @@ public class TagView extends SubsamplingScaleImageView {
     private int tagCircleRadius = 0;
     private List<Tag> tagsOnImage;
     private Paint paint;
+    private final float VISUALIZATION_INNER_SCALE = 1.05f;
+    private final float VISUALIZATION_MIDDLE_SCALE = 1.72f;
+    private final float VISUALIZATION_OUTER_SCALE = 1.76f;
+    private enum ViewMode {
+        TAGGING_MODE, CORRECTION_MODE
+    }
+    private ViewMode viewMode;
+    // last view state before the user entered correction mode,
+    // used to restore the view when returning to tagging mode
+    private ImageViewState lastViewState;
 
     // helper variables to avoid repeated allocation while drawing
     private int bit;
@@ -58,7 +69,36 @@ public class TagView extends SubsamplingScaleImageView {
                 }
 
                 PointF tap = viewToSourceCoord(e.getX(), e.getY());
-                Toast.makeText(getContext(), tap.x + ", " + tap.y, Toast.LENGTH_SHORT).show();
+                if (viewMode == ViewMode.TAGGING_MODE) {
+                    Tag tappedTag = tagAtPosition(tap);
+                    if (tappedTag != null) {
+                        float scale = (getWidth() * 0.95f) / (tappedTag.getRadius() * 2 * VISUALIZATION_OUTER_SCALE);
+                        PointF center = new PointF(tappedTag.getCenterX(), tappedTag.getCenterY());
+                        lastViewState = getState();
+                        setViewMode(ViewMode.CORRECTION_MODE);
+                        animateScaleAndCenter(scale, center)
+                                .withEasing(EASE_IN_OUT_QUAD)
+                                .withDuration(400)
+                                .withInterruptible(false)
+                                .start();
+                        setPanEnabled(false);
+                        setZoomEnabled(false);
+                    }
+                } else if (viewMode == ViewMode.CORRECTION_MODE) {
+                    Tag tappedTag = tagAtPosition(tap);
+                    if (tappedTag != null) {
+                        // TODO: detect bit corrections etc.
+                    } else {
+                        setViewMode(ViewMode.TAGGING_MODE);
+                        setPanEnabled(true);
+                        setZoomEnabled(true);
+                        animateScaleAndCenter(lastViewState.getScale(), lastViewState.getCenter())
+                                .withEasing(EASE_IN_OUT_QUAD)
+                                .withDuration(400)
+                                .withInterruptible(false)
+                                .start();
+                    }
+                }
                 return true;
             }
         });
@@ -68,12 +108,14 @@ public class TagView extends SubsamplingScaleImageView {
                 return gestureDetector.onTouchEvent(motionEvent);
             }
         });
+        viewMode = ViewMode.TAGGING_MODE;
     }
 
     @Override
     protected void onReady() {
         super.onReady();
         tagCircleRadius = Math.round(getWidth() / 4);
+        lastViewState = getState();
     }
 
     @Override
@@ -89,12 +131,23 @@ public class TagView extends SubsamplingScaleImageView {
         }
 
         // tagging circle
-        paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(2);
-        paint.setColor(Color.argb(140, 255, 255, 255)); // white
-        canvas.drawCircle(getWidth()/2, getHeight()/2, tagCircleRadius + strokeWidth, paint);
-        paint.setColor(Color.argb(140, 0, 0, 0)); // black
-        canvas.drawCircle(getWidth()/2, getHeight()/2, tagCircleRadius, paint);
+        if (viewMode == ViewMode.TAGGING_MODE) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(2);
+            paint.setColor(Color.argb(140, 255, 255, 255)); // white
+            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius + strokeWidth, paint);
+            paint.setColor(Color.argb(140, 0, 0, 0)); // black
+            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
+        }
+    }
+
+    public int getTagCircleRadius() {
+        return tagCircleRadius;
+    }
+
+    public void setTagsOnImage(List<Tag> tags) {
+        this.tagsOnImage = tags;
+        invalidate();
     }
 
     private void drawTagVisualization(Canvas canvas, Tag tag) {
@@ -102,16 +155,16 @@ public class TagView extends SubsamplingScaleImageView {
         tagCenterInView = sourceToViewCoord(tag.getCenterX(), tag.getCenterY());
         tagRadiusInView = tag.getRadius() * getScale();
         innerCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView*1.05f),
-                tagCenterInView.y - (tagRadiusInView*1.05f),
-                tagCenterInView.x + (tagRadiusInView*1.05f),
-                tagCenterInView.y + (tagRadiusInView*1.05f)
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_INNER_SCALE)
         );
         outerCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView*1.72f),
-                tagCenterInView.y - (tagRadiusInView*1.72f),
-                tagCenterInView.x + (tagRadiusInView*1.72f),
-                tagCenterInView.y + (tagRadiusInView*1.72f)
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE)
         );
         orientationDegrees = (float) Math.toDegrees(tag.getOrientation());
         for (int i = 0; i < 12; i++) {
@@ -127,12 +180,12 @@ public class TagView extends SubsamplingScaleImageView {
             canvas.drawPath(path, paint);
             path.reset();
         }
-        // draw orientation circle on the inside
+        // draw orientation circle on the outside
         orientationCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView*1.76f),
-                tagCenterInView.y - (tagRadiusInView*1.76f),
-                tagCenterInView.x + (tagRadiusInView*1.76f),
-                tagCenterInView.y + (tagRadiusInView*1.76f)
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_OUTER_SCALE)
         );
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(tagRadiusInView*0.08f);
@@ -142,12 +195,31 @@ public class TagView extends SubsamplingScaleImageView {
         canvas.drawArc(orientationCircle, (orientationDegrees - 90) % 360, 180, false, paint);
     }
 
-    public int getTagCircleRadius() {
-        return tagCircleRadius;
+    // returns the marked tag at the given image coordinates,
+    // or null if the location does not contain a tag
+    @Nullable
+    private Tag tagAtPosition(PointF tap) {
+        for (Tag tag : tagsOnImage) {
+            float distance = new PointF(tap.x - tag.getCenterX(), tap.y - tag.getCenterY()).length();
+            float visualization_radius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
+            if (distance < visualization_radius) {
+                return tag;
+            }
+        }
+        return null;
     }
 
-    public void setTagsOnImage(List<Tag> tags) {
-        this.tagsOnImage = tags;
-        invalidate();
+    // sets the view mode and changes UI elements accordingly,
+    // it does not enable/disable zooming, panning etc.
+    private void setViewMode(ViewMode viewMode) {
+        this.viewMode = viewMode;
+        switch (this.viewMode) {
+            case TAGGING_MODE:
+                // TODO: change UI elements etc.
+                break;
+            case CORRECTION_MODE:
+                // TODO: change UI elements etc.
+                break;
+        }
     }
 }

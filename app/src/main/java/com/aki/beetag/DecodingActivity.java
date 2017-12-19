@@ -313,6 +313,7 @@ public class DecodingActivity extends Activity {
         tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
         tagView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
+
         new DatabaseQueryTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
     }
