@@ -25,11 +25,11 @@ public class TagView extends SubsamplingScaleImageView {
     private int tagCircleRadius = 0;
     private List<Tag> tagsOnImage;
     private Paint paint;
-    private final float VISUALIZATION_INNER_SCALE = 1.05f;
+    private final float VISUALIZATION_INNER_SCALE = 1.1f;
     private final float VISUALIZATION_MIDDLE_SCALE = 1.72f;
     private final float VISUALIZATION_OUTER_SCALE = 1.76f;
     private enum ViewMode {
-        TAGGING_MODE, CORRECTION_MODE
+        TAGGING_MODE, EDITING_MODE
     }
     private ViewMode viewMode;
     // last view state before the user entered correction mode,
@@ -45,6 +45,7 @@ public class TagView extends SubsamplingScaleImageView {
     private RectF outerCircle;
     private float orientationDegrees;
     private RectF orientationCircle;
+    private Tag currentlyEditedTag;
 
     public TagView(Context context, AttributeSet attr) {
         super(context, attr);
@@ -72,10 +73,11 @@ public class TagView extends SubsamplingScaleImageView {
                 if (viewMode == ViewMode.TAGGING_MODE) {
                     Tag tappedTag = tagAtPosition(tap);
                     if (tappedTag != null) {
+                        currentlyEditedTag = tappedTag;
                         float scale = (getWidth() * 0.95f) / (tappedTag.getRadius() * 2 * VISUALIZATION_OUTER_SCALE);
                         PointF center = new PointF(tappedTag.getCenterX(), tappedTag.getCenterY());
                         lastViewState = getState();
-                        setViewMode(ViewMode.CORRECTION_MODE);
+                        setViewMode(ViewMode.EDITING_MODE);
                         animateScaleAndCenter(scale, center)
                                 .withEasing(EASE_IN_OUT_QUAD)
                                 .withDuration(400)
@@ -84,14 +86,18 @@ public class TagView extends SubsamplingScaleImageView {
                         setPanEnabled(false);
                         setZoomEnabled(false);
                     }
-                } else if (viewMode == ViewMode.CORRECTION_MODE) {
-                    Tag tappedTag = tagAtPosition(tap);
-                    if (tappedTag != null) {
-                        // TODO: detect bit corrections etc.
+                } else if (viewMode == ViewMode.EDITING_MODE) {
+                    int toggledBit = bitSegmentAtPosition(tap, currentlyEditedTag);
+                    if (toggledBit != -1) {
+                        // invert bit that was tapped
+                        currentlyEditedTag.setBeeId(currentlyEditedTag.getBeeId() ^ (1 << toggledBit));
+                        // update view to show changed tag
+                        invalidate();
                     } else {
                         setViewMode(ViewMode.TAGGING_MODE);
                         setPanEnabled(true);
                         setZoomEnabled(true);
+                        currentlyEditedTag = null;
                         animateScaleAndCenter(lastViewState.getScale(), lastViewState.getCenter())
                                 .withEasing(EASE_IN_OUT_QUAD)
                                 .withDuration(400)
@@ -198,15 +204,32 @@ public class TagView extends SubsamplingScaleImageView {
     // returns the marked tag at the given image coordinates,
     // or null if the location does not contain a tag
     @Nullable
-    private Tag tagAtPosition(PointF tap) {
+    private Tag tagAtPosition(PointF pos) {
         for (Tag tag : tagsOnImage) {
-            float distance = new PointF(tap.x - tag.getCenterX(), tap.y - tag.getCenterY()).length();
-            float visualization_radius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
-            if (distance < visualization_radius) {
+            float distance = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY()).length();
+            float visualizationRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
+            if (distance < visualizationRadius) {
                 return tag;
             }
         }
         return null;
+    }
+
+    // returns the offset of the tag bit that is located at the given image position
+    // (offset starting from the end)
+    private int bitSegmentAtPosition(PointF pos, Tag tag) {
+        PointF tagCenterToPos = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY());
+        float distance = tagCenterToPos.length();
+        float visualizationOuterRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
+        float visualizationInnerRadius = tag.getRadius() * VISUALIZATION_INNER_SCALE;
+        if (distance < visualizationOuterRadius && distance > visualizationInnerRadius) {
+            double angle = (Math.toDegrees(Math.atan2(tagCenterToPos.y, tagCenterToPos.x)) + 360) % 360;
+            // rotate based on tag orientation
+            angle = (angle - tag.getOrientation()) % 360;
+            return (int) Math.round(Math.floor(angle / 30));
+        } else {
+            return -1;
+        }
     }
 
     // sets the view mode and changes UI elements accordingly,
@@ -217,7 +240,7 @@ public class TagView extends SubsamplingScaleImageView {
             case TAGGING_MODE:
                 // TODO: change UI elements etc.
                 break;
-            case CORRECTION_MODE:
+            case EDITING_MODE:
                 // TODO: change UI elements etc.
                 break;
         }
