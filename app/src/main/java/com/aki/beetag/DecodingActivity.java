@@ -12,6 +12,8 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -43,6 +45,11 @@ import ar.com.hjg.pngj.PngWriter;
 
 public class DecodingActivity extends Activity {
 
+    public enum ViewMode {
+        TAGGING_MODE, EDITING_MODE
+    }
+    private ViewMode viewMode;
+
     private TagView tagView;
     private ImageButton tagButton;
     private File imageFolder;
@@ -51,6 +58,8 @@ public class DecodingActivity extends Activity {
 
     private TagDatabase database = null;
     private TagDao dao;
+
+    private Tag currentlyEditedTag;
 
     private class ServerRequestTask extends AsyncTask<DecodingData, Void, List<Tag>> {
 
@@ -228,7 +237,7 @@ public class DecodingActivity extends Activity {
         }
     }
 
-    private class DatabaseQueryTask extends AsyncTask<String, Void, List<Tag>> {
+    private class GetAllTagsTask extends AsyncTask<String, Void, List<Tag>> {
 
         @Override
         protected List<Tag> doInBackground(String... files) {
@@ -251,7 +260,7 @@ public class DecodingActivity extends Activity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            new DatabaseQueryTask().execute(imageName);
+            new GetAllTagsTask().execute(imageName);
         }
     }
 
@@ -309,13 +318,71 @@ public class DecodingActivity extends Activity {
         });
 
         tagView = findViewById(R.id.tag_view);
+        setViewMode(ViewMode.TAGGING_MODE);
         tagView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
         tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
         tagView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
 
-        new DatabaseQueryTask().execute(imageName);
+        final GestureDetector gestureDetector = new GestureDetector(getApplicationContext(), new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                if (!tagView.isReady()) {
+                    return true;
+                }
+
+                PointF tap = tagView.viewToSourceCoord(e.getX(), e.getY());
+                if (viewMode == ViewMode.TAGGING_MODE) {
+                    Tag tappedTag = tagView.tagAtPosition(tap);
+                    if (tappedTag != null) {
+                        currentlyEditedTag = tappedTag;
+                        setViewMode(ViewMode.EDITING_MODE);
+                        tagView.moveViewToTag(tappedTag);
+                        tagView.setPanEnabled(false);
+                        tagView.setZoomEnabled(false);
+                    }
+                } else if (viewMode == ViewMode.EDITING_MODE) {
+                    int toggledBitPosition = tagView.bitSegmentAtPosition(tap, currentlyEditedTag);
+                    if (toggledBitPosition != -1) {
+                        // invert bit that was tapped
+                        currentlyEditedTag.setBeeId(currentlyEditedTag.getBeeId() ^ (1 << toggledBitPosition));
+                        // update view to show changed tag
+                        tagView.invalidate();
+                    } else {
+                        setViewMode(ViewMode.TAGGING_MODE);
+                        tagView.setPanEnabled(true);
+                        tagView.setZoomEnabled(true);
+                        currentlyEditedTag = null;
+                        tagView.moveViewBack();
+                    }
+                }
+                return true;
+            }
+        });
+        tagView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return gestureDetector.onTouchEvent(motionEvent);
+            }
+        });
+
+        new GetAllTagsTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
+    }
+
+    // sets the view mode and changes UI elements accordingly,
+    // it does not enable/disable zooming, panning etc.
+    private void setViewMode(ViewMode viewMode) {
+        this.viewMode = viewMode;
+        tagView.setViewMode(viewMode);
+        switch (this.viewMode) {
+            case TAGGING_MODE:
+                // TODO: change UI elements etc.
+                break;
+            case EDITING_MODE:
+                // TODO: change UI elements etc.
+                break;
+        }
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {

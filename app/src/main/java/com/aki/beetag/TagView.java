@@ -21,17 +21,17 @@ import java.util.List;
 
 public class TagView extends SubsamplingScaleImageView {
 
+    public static final float VISUALIZATION_INNER_SCALE = 1.1f;
+    public static final float VISUALIZATION_MIDDLE_SCALE = 1.72f;
+    public static final float VISUALIZATION_OUTER_SCALE = 1.76f;
+
+    private DecodingActivity.ViewMode viewMode;
+
     private int strokeWidth;
     private int tagCircleRadius = 0;
     private List<Tag> tagsOnImage;
     private Paint paint;
-    private final float VISUALIZATION_INNER_SCALE = 1.1f;
-    private final float VISUALIZATION_MIDDLE_SCALE = 1.72f;
-    private final float VISUALIZATION_OUTER_SCALE = 1.76f;
-    private enum ViewMode {
-        TAGGING_MODE, EDITING_MODE
-    }
-    private ViewMode viewMode;
+
     // last view state before the user entered correction mode,
     // used to restore the view when returning to tagging mode
     private ImageViewState lastViewState;
@@ -45,7 +45,7 @@ public class TagView extends SubsamplingScaleImageView {
     private RectF outerCircle;
     private float orientationDegrees;
     private RectF orientationCircle;
-    private Tag currentlyEditedTag;
+
 
     public TagView(Context context, AttributeSet attr) {
         super(context, attr);
@@ -62,59 +62,74 @@ public class TagView extends SubsamplingScaleImageView {
         paint = new Paint();
         paint.setAntiAlias(true);
         path = new Path();
-        final GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onSingleTapUp(MotionEvent e) {
-                if (!isReady()) {
-                    return true;
-                }
+        viewMode = DecodingActivity.ViewMode.TAGGING_MODE;
+    }
 
-                PointF tap = viewToSourceCoord(e.getX(), e.getY());
-                if (viewMode == ViewMode.TAGGING_MODE) {
-                    Tag tappedTag = tagAtPosition(tap);
-                    if (tappedTag != null) {
-                        currentlyEditedTag = tappedTag;
-                        float scale = (getWidth() * 0.95f) / (tappedTag.getRadius() * 2 * VISUALIZATION_OUTER_SCALE);
-                        PointF center = new PointF(tappedTag.getCenterX(), tappedTag.getCenterY());
-                        lastViewState = getState();
-                        setViewMode(ViewMode.EDITING_MODE);
-                        animateScaleAndCenter(scale, center)
-                                .withEasing(EASE_IN_OUT_QUAD)
-                                .withDuration(400)
-                                .withInterruptible(false)
-                                .start();
-                        setPanEnabled(false);
-                        setZoomEnabled(false);
-                    }
-                } else if (viewMode == ViewMode.EDITING_MODE) {
-                    int toggledBit = bitSegmentAtPosition(tap, currentlyEditedTag);
-                    if (toggledBit != -1) {
-                        // invert bit that was tapped
-                        currentlyEditedTag.setBeeId(currentlyEditedTag.getBeeId() ^ (1 << toggledBit));
-                        // update view to show changed tag
-                        invalidate();
-                    } else {
-                        setViewMode(ViewMode.TAGGING_MODE);
-                        setPanEnabled(true);
-                        setZoomEnabled(true);
-                        currentlyEditedTag = null;
-                        animateScaleAndCenter(lastViewState.getScale(), lastViewState.getCenter())
-                                .withEasing(EASE_IN_OUT_QUAD)
-                                .withDuration(400)
-                                .withInterruptible(false)
-                                .start();
-                    }
-                }
-                return true;
+    public int getTagCircleRadius() {
+        return tagCircleRadius;
+    }
+
+    public void setTagsOnImage(List<Tag> tags) {
+        this.tagsOnImage = tags;
+        invalidate();
+    }
+
+    public void setViewMode(DecodingActivity.ViewMode viewMode) {
+        this.viewMode = viewMode;
+    }
+
+    // returns the marked tag at the given image coordinates,
+    // or null if the location does not contain a tag
+    @Nullable
+    public Tag tagAtPosition(PointF pos) {
+        for (Tag tag : tagsOnImage) {
+            float distance = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY()).length();
+            float visualizationRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
+            if (distance < visualizationRadius) {
+                return tag;
             }
-        });
-        setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                return gestureDetector.onTouchEvent(motionEvent);
-            }
-        });
-        viewMode = ViewMode.TAGGING_MODE;
+        }
+        return null;
+    }
+
+    // returns the offset of the tag bit that is located at the given image position
+    // (offset starting from the end)
+    public int bitSegmentAtPosition(PointF pos, Tag tag) {
+        PointF tagCenterToPos = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY());
+        float distance = tagCenterToPos.length();
+        float visualizationOuterRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
+        float visualizationInnerRadius = tag.getRadius() * VISUALIZATION_INNER_SCALE;
+        if (distance < visualizationOuterRadius && distance > visualizationInnerRadius) {
+            double angle = (Math.toDegrees(Math.atan2(tagCenterToPos.y, tagCenterToPos.x)) + 360) % 360;
+            // rotate based on tag orientation
+            angle = (angle - tag.getOrientation()) % 360;
+            return (int) Math.round(Math.floor(angle / 30));
+        } else {
+            return -1;
+        }
+    }
+
+    // runs a zoom and translation animation that puts the given tag
+    // in the center of the screen so the user can edit it
+    public void moveViewToTag(Tag tag) {
+        float scale = (getWidth() * 0.95f) / (tag.getRadius() * 2 * TagView.VISUALIZATION_OUTER_SCALE);
+        PointF center = new PointF(tag.getCenterX(), tag.getCenterY());
+        lastViewState = getState();
+        animateScaleAndCenter(scale, center)
+                .withEasing(EASE_IN_OUT_QUAD)
+                .withDuration(400)
+                .withInterruptible(false)
+                .start();
+    }
+
+    // runs a zoom and translation animation that puts the field of view
+    // back to the state that it was in, before the user edited a tag
+    public void moveViewBack() {
+        animateScaleAndCenter(lastViewState.getScale(), lastViewState.getCenter())
+                .withEasing(EASE_IN_OUT_QUAD)
+                .withDuration(400)
+                .withInterruptible(false)
+                .start();
     }
 
     @Override
@@ -137,7 +152,7 @@ public class TagView extends SubsamplingScaleImageView {
         }
 
         // tagging circle
-        if (viewMode == ViewMode.TAGGING_MODE) {
+        if (viewMode == DecodingActivity.ViewMode.TAGGING_MODE) {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2);
             paint.setColor(Color.argb(140, 255, 255, 255)); // white
@@ -145,15 +160,6 @@ public class TagView extends SubsamplingScaleImageView {
             paint.setColor(Color.argb(140, 0, 0, 0)); // black
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
         }
-    }
-
-    public int getTagCircleRadius() {
-        return tagCircleRadius;
-    }
-
-    public void setTagsOnImage(List<Tag> tags) {
-        this.tagsOnImage = tags;
-        invalidate();
     }
 
     private void drawTagVisualization(Canvas canvas, Tag tag) {
@@ -199,50 +205,5 @@ public class TagView extends SubsamplingScaleImageView {
         canvas.drawArc(orientationCircle, (orientationDegrees + 90) % 360, 180, false, paint);
         paint.setColor(Color.argb(255, 253, 246, 227)); // light
         canvas.drawArc(orientationCircle, (orientationDegrees - 90) % 360, 180, false, paint);
-    }
-
-    // returns the marked tag at the given image coordinates,
-    // or null if the location does not contain a tag
-    @Nullable
-    private Tag tagAtPosition(PointF pos) {
-        for (Tag tag : tagsOnImage) {
-            float distance = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY()).length();
-            float visualizationRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
-            if (distance < visualizationRadius) {
-                return tag;
-            }
-        }
-        return null;
-    }
-
-    // returns the offset of the tag bit that is located at the given image position
-    // (offset starting from the end)
-    private int bitSegmentAtPosition(PointF pos, Tag tag) {
-        PointF tagCenterToPos = new PointF(pos.x - tag.getCenterX(), pos.y - tag.getCenterY());
-        float distance = tagCenterToPos.length();
-        float visualizationOuterRadius = tag.getRadius() * VISUALIZATION_OUTER_SCALE;
-        float visualizationInnerRadius = tag.getRadius() * VISUALIZATION_INNER_SCALE;
-        if (distance < visualizationOuterRadius && distance > visualizationInnerRadius) {
-            double angle = (Math.toDegrees(Math.atan2(tagCenterToPos.y, tagCenterToPos.x)) + 360) % 360;
-            // rotate based on tag orientation
-            angle = (angle - tag.getOrientation()) % 360;
-            return (int) Math.round(Math.floor(angle / 30));
-        } else {
-            return -1;
-        }
-    }
-
-    // sets the view mode and changes UI elements accordingly,
-    // it does not enable/disable zooming, panning etc.
-    private void setViewMode(ViewMode viewMode) {
-        this.viewMode = viewMode;
-        switch (this.viewMode) {
-            case TAGGING_MODE:
-                // TODO: change UI elements etc.
-                break;
-            case EDITING_MODE:
-                // TODO: change UI elements etc.
-                break;
-        }
     }
 }
