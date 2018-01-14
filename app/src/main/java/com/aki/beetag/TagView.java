@@ -155,9 +155,9 @@ public class TagView extends SubsamplingScaleImageView {
         if (viewMode == DecodingActivity.ViewMode.TAGGING_MODE) {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2);
-            paint.setColor(Color.argb(140, 255, 255, 255)); // white
+            paint.setColor(Color.argb(180, 255, 255, 255)); // white
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius + strokeWidth, paint);
-            paint.setColor(Color.argb(140, 0, 0, 0)); // black
+            paint.setColor(Color.argb(180, 0, 0, 0)); // black
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
         }
     }

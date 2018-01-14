@@ -12,10 +12,10 @@ import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -51,7 +51,8 @@ public class DecodingActivity extends Activity {
     private ViewMode viewMode;
 
     private TagView tagView;
-    private ImageButton tagButton;
+    private FloatingActionButton tagButton;
+    private FloatingActionButton deleteTagButton;
     private File imageFolder;
     private Uri imageUri;
     private String imageName;
@@ -237,7 +238,7 @@ public class DecodingActivity extends Activity {
         }
     }
 
-    private class GetAllTagsTask extends AsyncTask<String, Void, List<Tag>> {
+    private class GetTagsTask extends AsyncTask<String, Void, List<Tag>> {
 
         @Override
         protected List<Tag> doInBackground(String... files) {
@@ -260,7 +261,21 @@ public class DecodingActivity extends Activity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            new GetAllTagsTask().execute(imageName);
+            new GetTagsTask().execute(imageName);
+        }
+    }
+
+    private class DatabaseDeleteTask extends AsyncTask<Tag, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Tag... tags) {
+            dao.deleteTags(tags[0]);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            new GetTagsTask().execute(imageName);
         }
     }
 
@@ -317,6 +332,22 @@ public class DecodingActivity extends Activity {
             }
         });
 
+        deleteTagButton = findViewById(R.id.button_delete_tag);
+        deleteTagButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!tagView.isReady()) {
+                    return;
+                }
+
+                if (currentlyEditedTag != null) {
+                    new DatabaseDeleteTask().execute(currentlyEditedTag);
+                    setViewMode(ViewMode.TAGGING_MODE);
+                }
+            }
+        });
+        deleteTagButton.setVisibility(View.INVISIBLE);
+
         tagView = findViewById(R.id.tag_view);
         setViewMode(ViewMode.TAGGING_MODE);
         tagView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
@@ -337,9 +368,6 @@ public class DecodingActivity extends Activity {
                     if (tappedTag != null) {
                         currentlyEditedTag = tappedTag;
                         setViewMode(ViewMode.EDITING_MODE);
-                        tagView.moveViewToTag(tappedTag);
-                        tagView.setPanEnabled(false);
-                        tagView.setZoomEnabled(false);
                     } else {
                         return false;
                     }
@@ -352,10 +380,6 @@ public class DecodingActivity extends Activity {
                         tagView.invalidate();
                     } else {
                         setViewMode(ViewMode.TAGGING_MODE);
-                        tagView.setPanEnabled(true);
-                        tagView.setZoomEnabled(true);
-                        currentlyEditedTag = null;
-                        tagView.moveViewBack();
                     }
                 }
                 return true;
@@ -368,21 +392,32 @@ public class DecodingActivity extends Activity {
             }
         });
 
-        new GetAllTagsTask().execute(imageName);
+        new GetTagsTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
     }
 
-    // sets the view mode and changes UI elements accordingly,
-    // it does not enable/disable zooming, panning etc.
+    // sets the view mode and changes UI accordingly
     private void setViewMode(ViewMode viewMode) {
         this.viewMode = viewMode;
         tagView.setViewMode(viewMode);
+        if (!tagView.isReady()) {
+            return;
+        }
         switch (this.viewMode) {
             case TAGGING_MODE:
-                // TODO: change UI elements etc.
+                tagButton.setVisibility(View.VISIBLE);
+                deleteTagButton.setVisibility(View.INVISIBLE);
+                currentlyEditedTag = null;
+                tagView.setPanEnabled(true);
+                tagView.setZoomEnabled(true);
+                tagView.moveViewBack();
                 break;
             case EDITING_MODE:
-                // TODO: change UI elements etc.
+                tagButton.setVisibility(View.INVISIBLE);
+                deleteTagButton.setVisibility(View.VISIBLE);
+                tagView.moveViewToTag(currentlyEditedTag);
+                tagView.setPanEnabled(false);
+                tagView.setZoomEnabled(false);
                 break;
         }
     }

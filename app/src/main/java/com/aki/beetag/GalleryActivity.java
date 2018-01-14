@@ -146,10 +146,6 @@ public class GalleryActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 File clickedImage = (File) parent.getItemAtPosition(position);
-                Toast.makeText(getApplicationContext(),
-                        "(" + position + "/" + parent.getCount() + "): " + clickedImage.toString(),
-                        Toast.LENGTH_SHORT).show();
-
                 Intent displayImageIntent = new Intent(getApplicationContext(), DecodingActivity.class);
                 displayImageIntent.setData(Uri.fromFile(clickedImage));
                 displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
