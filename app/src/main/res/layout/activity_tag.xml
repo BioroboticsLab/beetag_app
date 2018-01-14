@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorPrimaryDark"
     tools:context="com.aki.beetag.DecodingActivity">
 
     <com.aki.beetag.TagView
@@ -13,17 +14,13 @@
         tools:layout_editor_absoluteX="8dp"
         tools:layout_editor_absoluteY="8dp" />
 
-    <ImageButton
+    <android.support.design.widget.FloatingActionButton
         android:id="@+id/button_tag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginBottom="50dp"
-        android:layout_marginEnd="50dp"
-        android:visibility="visible"
-        android:background="?android:selectableItemBackground"
-        android:src="@mipmap/tag_check" />
+        android:layout_gravity="bottom|right"
+        android:layout_margin="24dp"
+        android:backgroundTint="@color/colorAccent" />
 
 
-</RelativeLayout>
+</android.support.design.widget.CoordinatorLayout>

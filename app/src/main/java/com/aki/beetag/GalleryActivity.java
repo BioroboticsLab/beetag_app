@@ -11,8 +11,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -35,12 +38,13 @@ import java.util.Date;
 import java.util.Locale;
 
 
-public class GalleryActivity extends Activity {
+public class GalleryActivity extends AppCompatActivity {
 
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
-    private ImageButton cameraButton;
+    private Toolbar toolbar;
+    private FloatingActionButton cameraButton;
     private GridView imageGridView;
 
     private boolean storageWritePermissionGranted;
@@ -213,6 +217,7 @@ public class GalleryActivity extends Activity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        /*
         View decorView = getWindow().getDecorView();
         if (hasFocus) {
             decorView.setSystemUiVisibility(
@@ -223,6 +228,7 @@ public class GalleryActivity extends Activity {
                             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
+        */
     }
 
     @Override

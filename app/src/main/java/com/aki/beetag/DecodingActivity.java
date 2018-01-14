@@ -340,6 +340,8 @@ public class DecodingActivity extends Activity {
                         tagView.moveViewToTag(tappedTag);
                         tagView.setPanEnabled(false);
                         tagView.setZoomEnabled(false);
+                    } else {
+                        return false;
                     }
                 } else if (viewMode == ViewMode.EDITING_MODE) {
                     int toggledBitPosition = tagView.bitSegmentAtPosition(tap, currentlyEditedTag);
