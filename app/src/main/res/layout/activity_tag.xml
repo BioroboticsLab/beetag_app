@@ -30,5 +30,13 @@
         android:layout_margin="24dp"
         android:backgroundTint="@color/colorDelete" />
 
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button_save_edited_tag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_margin="24dp"
+        android:backgroundTint="@color/colorSave" />
+
 
 </android.support.design.widget.CoordinatorLayout>

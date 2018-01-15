@@ -11,8 +11,11 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.util.Log;
+import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -53,6 +56,7 @@ public class DecodingActivity extends Activity {
     private TagView tagView;
     private FloatingActionButton tagButton;
     private FloatingActionButton deleteTagButton;
+    private FloatingActionButton saveEditedTagButton;
     private File imageFolder;
     private Uri imageUri;
     private String imageName;
@@ -61,9 +65,10 @@ public class DecodingActivity extends Activity {
     private TagDao dao;
 
     private Tag currentlyEditedTag;
+    private double dragStartingAngle;
+    private double tagOrientationBeforeDrag;
 
     private class ServerRequestTask extends AsyncTask<DecodingData, Void, List<Tag>> {
-
         @Override
         protected List<Tag> doInBackground(DecodingData... decodingData) {
             DecodingData data = decodingData[0];
@@ -239,7 +244,6 @@ public class DecodingActivity extends Activity {
     }
 
     private class GetTagsTask extends AsyncTask<String, Void, List<Tag>> {
-
         @Override
         protected List<Tag> doInBackground(String... files) {
             return dao.loadTagsByImage(files[0]);
@@ -252,7 +256,6 @@ public class DecodingActivity extends Activity {
     }
 
     private class DatabaseInsertTask extends AsyncTask<Tag, Void, Void> {
-
         @Override
         protected Void doInBackground(Tag... tags) {
             dao.insertTags(tags[0]);
@@ -266,10 +269,22 @@ public class DecodingActivity extends Activity {
     }
 
     private class DatabaseDeleteTask extends AsyncTask<Tag, Void, Void> {
-
         @Override
         protected Void doInBackground(Tag... tags) {
             dao.deleteTags(tags[0]);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            new GetTagsTask().execute(imageName);
+        }
+    }
+
+    private class DatabaseUpdateTask extends AsyncTask<Tag, Void, Void> {
+        @Override
+        protected Void doInBackground(Tag... tags) {
+            dao.updateTags(tags[0]);
             return null;
         }
 
@@ -348,6 +363,22 @@ public class DecodingActivity extends Activity {
         });
         deleteTagButton.setVisibility(View.INVISIBLE);
 
+        saveEditedTagButton = findViewById(R.id.button_save_edited_tag);
+        saveEditedTagButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!tagView.isReady()) {
+                    return;
+                }
+
+                if (currentlyEditedTag != null) {
+                    new DatabaseUpdateTask().execute(currentlyEditedTag);
+                    setViewMode(ViewMode.TAGGING_MODE);
+                }
+            }
+        });
+        saveEditedTagButton.setVisibility(View.INVISIBLE);
+
         tagView = findViewById(R.id.tag_view);
         setViewMode(ViewMode.TAGGING_MODE);
         tagView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
@@ -373,22 +404,81 @@ public class DecodingActivity extends Activity {
                     }
                 } else if (viewMode == ViewMode.EDITING_MODE) {
                     int toggledBitPosition = tagView.bitSegmentAtPosition(tap, currentlyEditedTag);
+                    Log.d("debug", "toggled bit: " + toggledBitPosition);
                     if (toggledBitPosition != -1) {
                         // invert bit that was tapped
                         currentlyEditedTag.setBeeId(currentlyEditedTag.getBeeId() ^ (1 << toggledBitPosition));
                         // update view to show changed tag
                         tagView.invalidate();
                     } else {
+                        new GetTagsTask().execute(imageName);
                         setViewMode(ViewMode.TAGGING_MODE);
                     }
                 }
                 return true;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+                if (!tagView.isReady()) {
+                    return;
+                }
+
+                if (viewMode == ViewMode.EDITING_MODE) {
+                    if (Build.VERSION.SDK_INT < 24) {
+                        tagView.startDrag(
+                                null,
+                                new View.DragShadowBuilder(),
+                                null,
+                                0
+                        );
+                    } else {
+                        tagView.startDragAndDrop(
+                                null,
+                                new View.DragShadowBuilder(),
+                                null,
+                                0
+                        );
+                    }
+                }
             }
         });
         tagView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 return gestureDetector.onTouchEvent(motionEvent);
+            }
+        });
+        tagView.setOnDragListener(new View.OnDragListener() {
+            @Override
+            public boolean onDrag(View view, DragEvent dragEvent) {
+                final int action = dragEvent.getAction();
+                PointF locationInSource = tagView.viewToSourceCoord(dragEvent.getX(), dragEvent.getY());
+                PointF tagCenterToLocation = new PointF(
+                        locationInSource.x - currentlyEditedTag.getCenterX(),
+                        locationInSource.y - currentlyEditedTag.getCenterY()
+                );
+                double locationAngle = Math.toDegrees(Math.atan2(tagCenterToLocation.y, tagCenterToLocation.x));
+                double tagDragAngle;
+                double newTagAngle;
+                switch (action) {
+                    case DragEvent.ACTION_DRAG_STARTED:
+                        dragStartingAngle = locationAngle;
+                        tagOrientationBeforeDrag = currentlyEditedTag.getOrientation();
+                        break;
+                    case DragEvent.ACTION_DRAG_LOCATION:
+                        tagDragAngle = ((locationAngle - dragStartingAngle) + 360) % 360;
+                        newTagAngle = (Math.toDegrees(tagOrientationBeforeDrag) + tagDragAngle) % 360;
+                        currentlyEditedTag.setOrientation(Math.toRadians(newTagAngle));
+                        break;
+                    case DragEvent.ACTION_DROP:
+                        tagDragAngle = ((locationAngle - dragStartingAngle) + 360) % 360;
+                        newTagAngle = (Math.toDegrees(tagOrientationBeforeDrag) + tagDragAngle) % 360;
+                        currentlyEditedTag.setOrientation(Math.toRadians(newTagAngle));
+                        break;
+                }
+                tagView.invalidate();
+                return true;
             }
         });
 
@@ -407,6 +497,7 @@ public class DecodingActivity extends Activity {
             case TAGGING_MODE:
                 tagButton.setVisibility(View.VISIBLE);
                 deleteTagButton.setVisibility(View.INVISIBLE);
+                saveEditedTagButton.setVisibility(View.INVISIBLE);
                 currentlyEditedTag = null;
                 tagView.setPanEnabled(true);
                 tagView.setZoomEnabled(true);
@@ -415,6 +506,7 @@ public class DecodingActivity extends Activity {
             case EDITING_MODE:
                 tagButton.setVisibility(View.INVISIBLE);
                 deleteTagButton.setVisibility(View.VISIBLE);
+                saveEditedTagButton.setVisibility(View.VISIBLE);
                 tagView.moveViewToTag(currentlyEditedTag);
                 tagView.setPanEnabled(false);
                 tagView.setZoomEnabled(false);

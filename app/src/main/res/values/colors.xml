@@ -4,6 +4,7 @@
     <color name="colorPrimaryDark">#002b36</color>
     <color name="colorAccent">#b58900</color>
     <color name="colorDelete">#dc322f</color>
+    <color name="colorSave">#859900</color>
 
     <color name="black_overlay">#66000000</color>
 </resources>

@@ -102,7 +102,7 @@ public class TagView extends SubsamplingScaleImageView {
         if (distance < visualizationOuterRadius && distance > visualizationInnerRadius) {
             double angle = (Math.toDegrees(Math.atan2(tagCenterToPos.y, tagCenterToPos.x)) + 360) % 360;
             // rotate based on tag orientation
-            angle = (angle - tag.getOrientation()) % 360;
+            angle = ((angle - Math.toDegrees(tag.getOrientation())) + 360) % 360;
             return (int) Math.round(Math.floor(angle / 30));
         } else {
             return -1;
@@ -204,6 +204,6 @@ public class TagView extends SubsamplingScaleImageView {
         paint.setColor(Color.argb(255, 0, 43, 54)); // dark
         canvas.drawArc(orientationCircle, (orientationDegrees + 90) % 360, 180, false, paint);
         paint.setColor(Color.argb(255, 253, 246, 227)); // light
-        canvas.drawArc(orientationCircle, (orientationDegrees - 90) % 360, 180, false, paint);
+        canvas.drawArc(orientationCircle, ((orientationDegrees - 90) + 360) % 360, 180, false, paint);
     }
 }
