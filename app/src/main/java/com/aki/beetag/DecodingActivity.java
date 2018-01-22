@@ -159,6 +159,7 @@ public class DecodingActivity extends Activity {
 
                 MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
                 int mapSize = unpacker.unpackMapHeader();
+                Log.d("debug", "mapSize = " + mapSize);
                 ArrayList<ArrayList<Integer>> ids = new ArrayList<>();
                 ArrayList<Double> orientations = new ArrayList<>();
                 for (int i = 0; i < mapSize; i++) {
@@ -169,6 +170,7 @@ public class DecodingActivity extends Activity {
                             ArrayList<Integer> id;
                             for (int j = 0; j < idsListLength; j++) {
                                 id = new ArrayList<>();
+                                // will always be 12 (12 bits)
                                 int idLength = unpacker.unpackArrayHeader();
                                 for (int k = 0; k < idLength; k++) {
                                     id.add((int) Math.round(unpacker.unpackDouble()));
@@ -177,9 +179,18 @@ public class DecodingActivity extends Activity {
                             }
                             break;
                         case "Orientations":
-                            int orientationListLength = unpacker.unpackArrayHeader();
-                            for (int j = 0; j < orientationListLength; j++) {
-                                orientations.add(unpacker.unpackDouble());
+                            int orientationsListLength = unpacker.unpackArrayHeader();
+                            for (int j = 0; j < orientationsListLength; j++) {
+                                // will always be 3 (3 angle dimensions: z, y, x)
+                                int orientationLength = unpacker.unpackArrayHeader();
+                                for (int k = 0; k < orientationLength; k++) {
+                                    // only use the z angle
+                                    if (k == 0) {
+                                        orientations.add(unpacker.unpackDouble());
+                                    } else {
+                                        unpacker.unpackDouble();
+                                    }
+                                }
                             }
                             break;
                     }
@@ -239,7 +250,7 @@ public class DecodingActivity extends Activity {
             }
 
             new DatabaseInsertTask().execute(result.get(0));
-            Toast.makeText(getApplicationContext(), result.get(0).getBeeId(), Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "" + result.get(0).getBeeId(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -515,9 +526,9 @@ public class DecodingActivity extends Activity {
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {
-        String address = "http://4c6c1ce5.ngrok.io/process";
+        String address = "http://3c014522.ngrok.io/process";
 
-        JSONArray output = new JSONArray(new String[] {"IDs"});
+        JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
         HashMap<String, String> params = new HashMap<>();
         params.put("output", output.toString());
 
