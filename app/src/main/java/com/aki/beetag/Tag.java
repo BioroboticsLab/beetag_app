@@ -6,6 +6,9 @@ import android.arch.persistence.room.TypeConverters;
 
 import org.joda.time.DateTime;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
 @Entity(tableName = "tag")
 @TypeConverters({DateTimeConverter.class})
 public class Tag {
@@ -136,5 +139,56 @@ public class Tag {
 
     public void setOrientation(double orientation) {
         this.orientation = orientation;
+    }
+
+    // Converts id in bit array format to decimal representation format used by Fernando Wario.
+    // Description of the format conversion:
+    // If the tag is oriented with white facing north, the first 11 bits are read clockwise
+    // from the leftmost bit on the northern half (9 o' clock position), most significant
+    // bit first, resulting in a decimal number. If the last bit (8 o' clock position) acts as
+    // a parity bit, i.e. if it indicates an odd number of set bits in the first 11 bits, then
+    // the decimal number is the bee ID. Otherwise, the bee ID equals the decimal number + 2048.
+    public static int idToFerwarDecimal(ArrayList<Integer> id) {
+        // rotate the id by 3 so we start at "9 o' clock" instead of "12 o' clock"
+        ArrayList<Integer> rotatedId = new ArrayList<>(id);
+        Collections.rotate(rotatedId, 3);
+        int ferwar = 0;
+        int setBitsCount = 0;
+        for (int i = 0; i < 11; i++) {
+            int bit = rotatedId.get(i);
+            // count set bits for parity bit checking
+            setBitsCount += bit;
+            // convert bit list to decimal (most significant bit first)
+            ferwar = (ferwar << 1) | bit;
+        }
+        int parityBit = rotatedId.get(11);
+        // check if parity bit matches
+        if ((setBitsCount % 2) != parityBit) {
+            ferwar += 2048;
+        }
+        return ferwar;
+    }
+
+    // Converts id in decimal representation format used by Fernando Wario to bit array format.
+    // This reverses the format conversion in the idToFerwarDecimal() function above.
+    public static ArrayList<Integer> idFromFerwarDecimal(int ferwar) {
+        boolean parityNeedsToMatch = ferwar < 2048;
+        if (!parityNeedsToMatch) {
+            ferwar -= 2048;
+        }
+        ArrayList<Integer> id = new ArrayList<>();
+        int setBitsCount = 0;
+        for (int i = 11; i > 0; i--) {
+            // read bits from most to least significant
+            int bit = (ferwar >> i) & 1;
+            id.add(bit);
+            // count set bits
+            setBitsCount += bit;
+        }
+        // set "parity bit"
+        id.add(parityNeedsToMatch ? (setBitsCount % 2) : (1 - (setBitsCount % 2)));
+        // rotate the id by -3 so we start at "12 o' clock" instead of "9 o' clock"
+        Collections.rotate(id, -3);
+        return id;
     }
 }

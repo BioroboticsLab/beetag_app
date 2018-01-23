@@ -40,6 +40,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -203,11 +204,7 @@ public class DecodingActivity extends Activity {
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageName);
                     tag.setOrientation(orientations.get(i));
-                    int beeId = 0;
-                    for (int j = 0; j < 12; j++) {
-                        beeId = beeId | (ids.get(i).get(j) << (11 - j));
-                    }
-                    tag.setBeeId(beeId);
+                    tag.setBeeId(Tag.idToFerwarDecimal(ids.get(i)));
                     tags.add(tag);
                 }
             } catch (IOException e) {
@@ -384,6 +381,7 @@ public class DecodingActivity extends Activity {
 
                 if (currentlyEditedTag != null) {
                     new DatabaseUpdateTask().execute(currentlyEditedTag);
+                    Toast.makeText(getApplicationContext(), "" + currentlyEditedTag.getBeeId(), Toast.LENGTH_LONG).show();
                     setViewMode(ViewMode.TAGGING_MODE);
                 }
             }
@@ -526,7 +524,7 @@ public class DecodingActivity extends Activity {
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {
-        String address = "http://3c014522.ngrok.io/process";
+        String address = "http://662a6528.ngrok.io/process";
 
         JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
         HashMap<String, String> params = new HashMap<>();

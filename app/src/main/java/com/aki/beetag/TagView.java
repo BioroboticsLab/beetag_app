@@ -17,6 +17,8 @@ import android.view.View;
 import com.davemorrissey.labs.subscaleview.ImageViewState;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class TagView extends SubsamplingScaleImageView {
@@ -179,8 +181,9 @@ public class TagView extends SubsamplingScaleImageView {
                 tagCenterInView.y + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE)
         );
         orientationDegrees = (float) Math.toDegrees(tag.getOrientation());
+        ArrayList<Integer> id = Tag.idFromFerwarDecimal(tag.getBeeId());
         for (int i = 0; i < 12; i++) {
-            bit = (tag.getBeeId() >> i) & 1;
+            bit = id.get(i);
             if (bit == 1) {
                 paint.setColor(Color.argb(255, 253, 246, 227)); // light
             } else {
