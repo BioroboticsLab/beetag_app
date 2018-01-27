@@ -40,7 +40,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -160,7 +159,6 @@ public class DecodingActivity extends Activity {
 
                 MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(in);
                 int mapSize = unpacker.unpackMapHeader();
-                Log.d("debug", "mapSize = " + mapSize);
                 ArrayList<ArrayList<Integer>> ids = new ArrayList<>();
                 ArrayList<Double> orientations = new ArrayList<>();
                 for (int i = 0; i < mapSize; i++) {
@@ -204,7 +202,7 @@ public class DecodingActivity extends Activity {
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageName);
                     tag.setOrientation(orientations.get(i));
-                    tag.setBeeId(Tag.idToFerwarDecimal(ids.get(i)));
+                    tag.setBeeId(Tag.bitIdToDecimalId(ids.get(i)));
                     tags.add(tag);
                 }
             } catch (IOException e) {
@@ -413,10 +411,13 @@ public class DecodingActivity extends Activity {
                     }
                 } else if (viewMode == ViewMode.EDITING_MODE) {
                     int toggledBitPosition = tagView.bitSegmentAtPosition(tap, currentlyEditedTag);
+                    ArrayList<Integer> id = Tag.decimalIdToBitId(currentlyEditedTag.getBeeId());
                     Log.d("debug", "toggled bit: " + toggledBitPosition);
                     if (toggledBitPosition != -1) {
                         // invert bit that was tapped
-                        currentlyEditedTag.setBeeId(currentlyEditedTag.getBeeId() ^ (1 << toggledBitPosition));
+                        id.set(toggledBitPosition, 1 - id.get(toggledBitPosition));
+                        currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
+                        Log.d("debug", "ID: " + id);
                         // update view to show changed tag
                         tagView.invalidate();
                     } else {

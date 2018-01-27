@@ -10,26 +10,22 @@ import android.graphics.RectF;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
-import android.view.GestureDetector;
-import android.view.MotionEvent;
-import android.view.View;
 
 import com.davemorrissey.labs.subscaleview.ImageViewState;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class TagView extends SubsamplingScaleImageView {
 
-    public static final float VISUALIZATION_INNER_SCALE = 1.1f;
-    public static final float VISUALIZATION_MIDDLE_SCALE = 1.72f;
-    public static final float VISUALIZATION_OUTER_SCALE = 1.76f;
+    public static final float VISUALIZATION_INNER_SCALE = 0.9f;
+    public static final float VISUALIZATION_MIDDLE_SCALE = 0.94f;
+    public static final float VISUALIZATION_OUTER_SCALE = 1.44f;
 
     private DecodingActivity.ViewMode viewMode;
 
-    private int strokeWidth;
+    private int minStrokeWidth;
     private int tagCircleRadius = 0;
     private List<Tag> tagsOnImage;
     private Paint paint;
@@ -47,6 +43,7 @@ public class TagView extends SubsamplingScaleImageView {
     private RectF outerCircle;
     private float orientationDegrees;
     private RectF orientationCircle;
+    private ArrayList<Integer> id;
 
 
     public TagView(Context context, AttributeSet attr) {
@@ -60,7 +57,7 @@ public class TagView extends SubsamplingScaleImageView {
 
     private void initialise() {
         float width = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics());
-        strokeWidth = Math.max(1, Math.round(width));
+        minStrokeWidth = Math.max(1, Math.round(width));
         paint = new Paint();
         paint.setAntiAlias(true);
         path = new Path();
@@ -158,7 +155,7 @@ public class TagView extends SubsamplingScaleImageView {
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(2);
             paint.setColor(Color.argb(180, 255, 255, 255)); // white
-            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius + strokeWidth, paint);
+            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius + minStrokeWidth, paint);
             paint.setColor(Color.argb(180, 0, 0, 0)); // black
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
         }
@@ -169,19 +166,19 @@ public class TagView extends SubsamplingScaleImageView {
         tagCenterInView = sourceToViewCoord(tag.getCenterX(), tag.getCenterY());
         tagRadiusInView = tag.getRadius() * getScale();
         innerCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_INNER_SCALE)
-        );
-        outerCircle = new RectF(
                 tagCenterInView.x - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
                 tagCenterInView.y - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
                 tagCenterInView.x + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
                 tagCenterInView.y + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE)
         );
+        outerCircle = new RectF(
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_OUTER_SCALE)
+        );
         orientationDegrees = (float) Math.toDegrees(tag.getOrientation());
-        ArrayList<Integer> id = Tag.idFromFerwarDecimal(tag.getBeeId());
+        id = Tag.decimalIdToBitId(tag.getBeeId());
         for (int i = 0; i < 12; i++) {
             bit = id.get(i);
             if (bit == 1) {
@@ -195,12 +192,13 @@ public class TagView extends SubsamplingScaleImageView {
             canvas.drawPath(path, paint);
             path.reset();
         }
-        // draw orientation circle on the outside
+
+        // draw orientation circle on the inside
         orientationCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
-                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
-                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_OUTER_SCALE),
-                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_OUTER_SCALE)
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_INNER_SCALE)
         );
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(tagRadiusInView*0.08f);
@@ -208,5 +206,7 @@ public class TagView extends SubsamplingScaleImageView {
         canvas.drawArc(orientationCircle, (orientationDegrees + 90) % 360, 180, false, paint);
         paint.setColor(Color.argb(255, 253, 246, 227)); // light
         canvas.drawArc(orientationCircle, ((orientationDegrees - 90) + 360) % 360, 180, false, paint);
+
+
     }
 }

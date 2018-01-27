@@ -148,7 +148,7 @@ public class Tag {
     // bit first, resulting in a decimal number. If the last bit (8 o' clock position) acts as
     // a parity bit, i.e. if it indicates an odd number of set bits in the first 11 bits, then
     // the decimal number is the bee ID. Otherwise, the bee ID equals the decimal number + 2048.
-    public static int idToFerwarDecimal(ArrayList<Integer> id) {
+    public static int bitIdToDecimalId(ArrayList<Integer> id) {
         // rotate the id by 3 so we start at "9 o' clock" instead of "12 o' clock"
         ArrayList<Integer> rotatedId = new ArrayList<>(id);
         Collections.rotate(rotatedId, 3);
@@ -170,15 +170,15 @@ public class Tag {
     }
 
     // Converts id in decimal representation format used by Fernando Wario to bit array format.
-    // This reverses the format conversion in the idToFerwarDecimal() function above.
-    public static ArrayList<Integer> idFromFerwarDecimal(int ferwar) {
+    // This reverses the format conversion in bitIdToDecimalId()
+    public static ArrayList<Integer> decimalIdToBitId(int ferwar) {
         boolean parityNeedsToMatch = ferwar < 2048;
         if (!parityNeedsToMatch) {
             ferwar -= 2048;
         }
-        ArrayList<Integer> id = new ArrayList<>();
+        ArrayList<Integer> id = new ArrayList<>(12);
         int setBitsCount = 0;
-        for (int i = 11; i > 0; i--) {
+        for (int i = 10; i >= 0; i--) {
             // read bits from most to least significant
             int bit = (ferwar >> i) & 1;
             id.add(bit);
