@@ -19,9 +19,11 @@ import java.util.List;
 
 public class TagView extends SubsamplingScaleImageView {
 
-    public static final float VISUALIZATION_INNER_SCALE = 0.9f;
-    public static final float VISUALIZATION_MIDDLE_SCALE = 0.94f;
+    public static final float VISUALIZATION_INNER_SCALE = 0.88f;
+    public static final float VISUALIZATION_MIDDLE_SCALE = 1.0f;
     public static final float VISUALIZATION_OUTER_SCALE = 1.44f;
+    private static final float VISUALIZATION_ORIENTATION_SCALE =
+            (VISUALIZATION_MIDDLE_SCALE + VISUALIZATION_INNER_SCALE) / 2;
 
     private DecodingActivity.ViewMode viewMode;
 
@@ -35,12 +37,12 @@ public class TagView extends SubsamplingScaleImageView {
     private ImageViewState lastViewState;
 
     // helper variables to avoid repeated allocation while drawing
-    private int bit;
     private Path path;
     private PointF tagCenterInView;
     private float tagRadiusInView;
-    private RectF innerCircle;
+    private RectF middleCircle;
     private RectF outerCircle;
+    private RectF innerCircle;
     private float orientationDegrees;
     private RectF orientationCircle;
     private ArrayList<Integer> id;
@@ -153,10 +155,11 @@ public class TagView extends SubsamplingScaleImageView {
         // tagging circle
         if (viewMode == DecodingActivity.ViewMode.TAGGING_MODE) {
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(2);
-            paint.setColor(Color.argb(180, 255, 255, 255)); // white
-            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius + minStrokeWidth, paint);
-            paint.setColor(Color.argb(180, 0, 0, 0)); // black
+            paint.setStrokeWidth(3);
+            paint.setColor(Color.argb(140, 0, 0, 0)); // black
+            canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
+            paint.setStrokeWidth(1);
+            paint.setColor(Color.argb(230, 255, 255, 255)); // white
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
         }
     }
@@ -165,7 +168,7 @@ public class TagView extends SubsamplingScaleImageView {
         paint.setStyle(Paint.Style.FILL);
         tagCenterInView = sourceToViewCoord(tag.getCenterX(), tag.getCenterY());
         tagRadiusInView = tag.getRadius() * getScale();
-        innerCircle = new RectF(
+        middleCircle = new RectF(
                 tagCenterInView.x - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
                 tagCenterInView.y - (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
                 tagCenterInView.x + (tagRadiusInView * VISUALIZATION_MIDDLE_SCALE),
@@ -180,33 +183,48 @@ public class TagView extends SubsamplingScaleImageView {
         orientationDegrees = (float) Math.toDegrees(tag.getOrientation());
         id = Tag.decimalIdToBitId(tag.getBeeId());
         for (int i = 0; i < 12; i++) {
-            bit = id.get(i);
-            if (bit == 1) {
+            if (id.get(i) == 1) {
                 paint.setColor(Color.argb(255, 253, 246, 227)); // light
             } else {
                 paint.setColor(Color.argb(255, 0, 43, 54)); // dark
             }
             path.arcTo(outerCircle, orientationDegrees + (i*30), 30, false);
-            path.arcTo(innerCircle, (orientationDegrees + (i*30) + 30) % 360, -30, false);
+            path.arcTo(middleCircle, (orientationDegrees + (i*30) + 30) % 360, -30, false);
             path.close();
             canvas.drawPath(path, paint);
             path.reset();
         }
 
-        // draw orientation circle on the inside
+        // orientation circle on the inside
         orientationCircle = new RectF(
-                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_INNER_SCALE),
-                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_INNER_SCALE)
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_ORIENTATION_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_ORIENTATION_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_ORIENTATION_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_ORIENTATION_SCALE)
         );
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(tagRadiusInView*0.08f);
+        paint.setStrokeWidth((VISUALIZATION_MIDDLE_SCALE - VISUALIZATION_INNER_SCALE) * tagRadiusInView);
+
         paint.setColor(Color.argb(255, 0, 43, 54)); // dark
         canvas.drawArc(orientationCircle, (orientationDegrees + 90) % 360, 180, false, paint);
         paint.setColor(Color.argb(255, 253, 246, 227)); // light
         canvas.drawArc(orientationCircle, ((orientationDegrees - 90) + 360) % 360, 180, false, paint);
 
-
+        // draw outlines
+        innerCircle = new RectF(
+                tagCenterInView.x - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y - (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.x + (tagRadiusInView * VISUALIZATION_INNER_SCALE),
+                tagCenterInView.y + (tagRadiusInView * VISUALIZATION_INNER_SCALE)
+        );
+        paint.setColor(Color.argb(180, 0, 0, 0)); // black
+        paint.setStrokeWidth(1);
+        for (int i = 0; i < 12; i++) {
+            path.arcTo(outerCircle, orientationDegrees + (i*30), 30, false);
+            path.arcTo(middleCircle, (orientationDegrees + (i*30) + 30) % 360, -30, false);
+            canvas.drawPath(path, paint);
+            path.reset();
+        }
+        canvas.drawArc(innerCircle, 0, 360, false, paint);
     }
 }
