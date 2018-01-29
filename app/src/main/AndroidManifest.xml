@@ -16,7 +16,7 @@
         android:theme="@style/Theme.AppCompat.Light.NoActionBar">
         <activity
             android:name=".GalleryActivity"
-            android:screenOrientation="nosensor">
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -34,7 +34,10 @@
                 android:resource="@xml/filepaths"></meta-data>
         </provider>
 
-        <activity android:name=".DecodingActivity"></activity>
+        <activity
+            android:name=".DecodingActivity"
+            android:screenOrientation="portrait">
+        </activity>
     </application>
 
 </manifest>

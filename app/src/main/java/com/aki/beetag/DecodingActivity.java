@@ -14,11 +14,11 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.ScrollView;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -57,6 +57,8 @@ public class DecodingActivity extends Activity {
     private FloatingActionButton tagButton;
     private FloatingActionButton deleteTagButton;
     private FloatingActionButton saveEditedTagButton;
+    private ScrollView tagInfoView;
+
     private File imageFolder;
     private Uri imageUri;
     private String imageName;
@@ -303,7 +305,7 @@ public class DecodingActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tag);
+        setContentView(R.layout.activity_decoding);
 
         Intent intent = getIntent();
         imageUri = intent.getData();
@@ -412,12 +414,10 @@ public class DecodingActivity extends Activity {
                 } else if (viewMode == ViewMode.EDITING_MODE) {
                     int toggledBitPosition = tagView.bitSegmentAtPosition(tap, currentlyEditedTag);
                     ArrayList<Integer> id = Tag.decimalIdToBitId(currentlyEditedTag.getBeeId());
-                    Log.d("debug", "toggled bit: " + toggledBitPosition);
                     if (toggledBitPosition != -1) {
                         // invert bit that was tapped
                         id.set(toggledBitPosition, 1 - id.get(toggledBitPosition));
                         currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
-                        Log.d("debug", "ID: " + id);
                         // update view to show changed tag
                         tagView.invalidate();
                     } else {
@@ -494,6 +494,8 @@ public class DecodingActivity extends Activity {
 
         new GetTagsTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
+
+        tagInfoView = findViewById(R.id.scrollview_tag_info);
     }
 
     // sets the view mode and changes UI accordingly
@@ -503,12 +505,13 @@ public class DecodingActivity extends Activity {
         if (!tagView.isReady()) {
             return;
         }
-        switch (this.viewMode) {
+        switch (viewMode) {
             case TAGGING_MODE:
                 tagButton.setVisibility(View.VISIBLE);
                 deleteTagButton.setVisibility(View.INVISIBLE);
                 saveEditedTagButton.setVisibility(View.INVISIBLE);
                 currentlyEditedTag = null;
+                tagInfoView.setVisibility(View.INVISIBLE);
                 tagView.setPanEnabled(true);
                 tagView.setZoomEnabled(true);
                 tagView.moveViewBack();
@@ -517,6 +520,7 @@ public class DecodingActivity extends Activity {
                 tagButton.setVisibility(View.INVISIBLE);
                 deleteTagButton.setVisibility(View.VISIBLE);
                 saveEditedTagButton.setVisibility(View.VISIBLE);
+                tagInfoView.setVisibility(View.VISIBLE);
                 tagView.moveViewToTag(currentlyEditedTag);
                 tagView.setPanEnabled(false);
                 tagView.setZoomEnabled(false);
