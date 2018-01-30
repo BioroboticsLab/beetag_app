@@ -51,61 +51,122 @@
         android:layout_width="match_parent"
         android:layout_height="240dp"
         android:background="@color/colorPrimary"
-        android:elevation="4dp" >
+        android:elevation="4dp">
 
         <RelativeLayout
-            android:layout_width="match_parent"
+            android:id="@+id/relativelayout_tag_info_static"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingLeft="20dp"
-            android:paddingRight="20dp" >
+            android:paddingRight="20dp"
+            android:paddingTop="10dp"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
 
             <TextView
-                android:id="@+id/textview_tag_info_top_bar"
+                android:id="@+id/textview_tag_info_bee_id"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
                 android:text="1337 (Sabiene)"
                 android:textColor="@color/colorText"
-                android:textSize="25dp"
-                android:layout_centerHorizontal="true" />
-
-            <TextView
-                android:id="@+id/textview_bee_id"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Bee ID"
-                android:textColor="@color/colorText"
                 android:textSize="20dp"
-                android:layout_below="@+id/textview_tag_info_top_bar" />
+                android:textAlignment="textEnd" />
 
             <TextView
-                android:id="@+id/textview_tag_date"
+                android:id="@+id/textview_tag_info_static_bee_id"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Date"
+                android:layout_alignBaseline="@+id/textview_tag_info_bee_id"
+                android:layout_alignParentLeft="true"
+                android:text="Bee"
                 android:textColor="@color/colorText"
-                android:textSize="20dp"
-                android:layout_below="@+id/textview_bee_id" />
+                android:textSize="15dp"
+                android:textStyle="italic"/>
 
             <TextView
-                android:id="@+id/textview_tag_label"
+                android:id="@+id/textview_tag_info_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_below="@id/textview_tag_info_bee_id"
+                android:text="14:36"
+                android:textAlignment="textEnd"
+                android:textColor="@color/colorAccent"
+                android:textSize="20dp"
+                android:textStyle="bold"
+                android:paddingTop="10dp" />
+
+            <TextView
+                android:id="@+id/textview_tag_info_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/textview_tag_info_time"
+                android:layout_toLeftOf="@id/textview_tag_info_time"
+                android:paddingRight="8dp"
+                android:text="24.12.2018"
+                android:textColor="@color/colorAccent"
+                android:textSize="20dp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/textview_tag_info_static_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/textview_tag_info_time"
+                android:text="Time of observation"
+                android:textColor="@color/colorText"
+                android:textSize="15dp"
+                android:textStyle="italic"/>
+
+            <EditText
+                android:id="@+id/edittext_tag_info_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/textview_tag_info_time"
+                android:layout_alignParentRight="true"
+                android:layout_toRightOf="@+id/textview_tag_info_label"
+                android:inputType="text"
+                android:textSize="15dp"
+                android:textAlignment="textEnd"
+                android:hint="e.g. ''experiment #1''"/>
+
+            <EditText
+                android:id="@+id/edittext_tag_info_notes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/edittext_tag_info_label"
+                android:layout_alignParentRight="true"
+                android:layout_toRightOf="@+id/textview_tag_info_notes"
+                android:inputType="textMultiLine"
+                android:textSize="15dp"
+                android:textAlignment="textEnd"
+                android:hint="e.g. ''needs checking''"/>
+
+            <TextView
+                android:id="@+id/textview_tag_info_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@id/edittext_tag_info_label"
                 android:text="Label"
                 android:textColor="@color/colorText"
-                android:textSize="20dp"
-                android:layout_below="@+id/textview_tag_date" />
+                android:textSize="15dp"
+                android:textStyle="italic"
+                android:paddingRight="80dp"/>
 
             <TextView
-                android:id="@+id/textview_tag_notes"
+                android:id="@+id/textview_tag_info_notes"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_below="@+id/textview_tag_info_label"
+                android:layout_alignBaseline="@+id/edittext_tag_info_notes"
                 android:text="Notes"
                 android:textColor="@color/colorText"
-                android:textSize="20dp"
-                android:layout_below="@+id/textview_tag_label" />
+                android:textSize="15dp"
+                android:textStyle="italic"
+                android:paddingRight="80dp"/>
 
         </RelativeLayout>
     </ScrollView>
-
 </RelativeLayout>
