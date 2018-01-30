@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimaryDark"
+    android:background="@color/colorBackground"
     android:orientation="vertical"
     tools:context="com.aki.beetag.DecodingActivity">
 
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorPrimaryDark">
+        android:background="@color/colorBackground">
 
         <com.aki.beetag.TagView
             android:id="@+id/tag_view"
@@ -50,14 +50,62 @@
         android:id="@+id/scrollview_tag_info"
         android:layout_width="match_parent"
         android:layout_height="240dp"
-        android:visibility="invisible">
+        android:background="@color/colorPrimary"
+        android:elevation="4dp" >
 
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" >
+            android:orientation="vertical"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp" >
 
-        </LinearLayout>
+            <TextView
+                android:id="@+id/textview_tag_info_top_bar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1337 (Sabiene)"
+                android:textColor="@color/colorText"
+                android:textSize="25dp"
+                android:layout_centerHorizontal="true" />
+
+            <TextView
+                android:id="@+id/textview_bee_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Bee ID"
+                android:textColor="@color/colorText"
+                android:textSize="20dp"
+                android:layout_below="@+id/textview_tag_info_top_bar" />
+
+            <TextView
+                android:id="@+id/textview_tag_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Date"
+                android:textColor="@color/colorText"
+                android:textSize="20dp"
+                android:layout_below="@+id/textview_bee_id" />
+
+            <TextView
+                android:id="@+id/textview_tag_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Label"
+                android:textColor="@color/colorText"
+                android:textSize="20dp"
+                android:layout_below="@+id/textview_tag_date" />
+
+            <TextView
+                android:id="@+id/textview_tag_notes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notes"
+                android:textColor="@color/colorText"
+                android:textSize="20dp"
+                android:layout_below="@+id/textview_tag_label" />
+
+        </RelativeLayout>
     </ScrollView>
 
 </RelativeLayout>
