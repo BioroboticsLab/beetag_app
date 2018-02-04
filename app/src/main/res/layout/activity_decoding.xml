@@ -24,149 +24,178 @@
             android:id="@+id/button_tag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|right"
-            android:layout_margin="24dp"
-            app:backgroundTint="@color/colorAccent" />
-
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/button_delete_tag"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_gravity="top|right"
             android:layout_margin="24dp"
-            app:backgroundTint="@color/colorDelete" />
+            app:backgroundTint="@color/colorAccent" />
 
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/button_save_edited_tag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="top|left"
+            android:layout_gravity="bottom|right"
             android:layout_margin="24dp"
             app:backgroundTint="@color/colorSave" />
 
     </android.support.design.widget.CoordinatorLayout>
 
-    <ScrollView
-        android:id="@+id/scrollview_tag_info"
+
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:background="@color/colorPrimary"
-        android:elevation="4dp">
+        android:layout_height="match_parent">
 
         <RelativeLayout
-            android:id="@+id/relativelayout_tag_info_static"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingLeft="20dp"
-            android:paddingRight="20dp"
-            android:paddingTop="10dp"
-            android:focusable="true"
-            android:focusableInTouchMode="true">
+            android:id="@+id/relativelayout_tag_info_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_alignParentTop="true"
+            android:background="@color/colorPrimaryDark"
+            android:elevation="8dp">
 
-            <TextView
-                android:id="@+id/textview_tag_info_bee_id"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:text="1337 (Sabiene)"
-                android:textColor="@color/colorText"
-                android:textSize="20dp"
-                android:textAlignment="textEnd" />
+            <ImageButton
+                android:id="@+id/button_tag_info_cancel"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="14dp"
+                android:background="@android:drawable/ic_menu_close_clear_cancel" />
 
-            <TextView
-                android:id="@+id/textview_tag_info_static_bee_id"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignBaseline="@+id/textview_tag_info_bee_id"
-                android:layout_alignParentLeft="true"
-                android:text="Bee"
-                android:textColor="@color/colorText"
-                android:textSize="15dp"
-                android:textStyle="italic"/>
-
-            <TextView
-                android:id="@+id/textview_tag_info_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentRight="true"
-                android:layout_below="@id/textview_tag_info_bee_id"
-                android:text="14:36"
-                android:textAlignment="textEnd"
-                android:textColor="@color/colorAccent"
-                android:textSize="20dp"
-                android:textStyle="bold"
-                android:paddingTop="10dp" />
-
-            <TextView
-                android:id="@+id/textview_tag_info_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignBaseline="@id/textview_tag_info_time"
-                android:layout_toLeftOf="@id/textview_tag_info_time"
-                android:paddingRight="8dp"
-                android:text="24.12.2018"
-                android:textColor="@color/colorAccent"
-                android:textSize="20dp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/textview_tag_info_static_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignBaseline="@id/textview_tag_info_time"
-                android:text="Time of observation"
-                android:textColor="@color/colorText"
-                android:textSize="15dp"
-                android:textStyle="italic"/>
-
-            <EditText
-                android:id="@+id/edittext_tag_info_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/textview_tag_info_time"
-                android:layout_alignParentRight="true"
-                android:layout_toRightOf="@+id/textview_tag_info_label"
-                android:inputType="text"
-                android:textSize="15dp"
-                android:textAlignment="textEnd"
-                android:hint="e.g. ''experiment #1''"/>
-
-            <EditText
-                android:id="@+id/edittext_tag_info_notes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/edittext_tag_info_label"
-                android:layout_alignParentRight="true"
-                android:layout_toRightOf="@+id/textview_tag_info_notes"
-                android:inputType="textMultiLine"
-                android:textSize="15dp"
-                android:textAlignment="textEnd"
-                android:hint="e.g. ''needs checking''"/>
-
-            <TextView
-                android:id="@+id/textview_tag_info_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignBaseline="@id/edittext_tag_info_label"
-                android:text="Label"
-                android:textColor="@color/colorText"
-                android:textSize="15dp"
-                android:textStyle="italic"
-                android:paddingRight="80dp"/>
-
-            <TextView
-                android:id="@+id/textview_tag_info_notes"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/textview_tag_info_label"
-                android:layout_alignBaseline="@+id/edittext_tag_info_notes"
-                android:text="Notes"
-                android:textColor="@color/colorText"
-                android:textSize="15dp"
-                android:textStyle="italic"
-                android:paddingRight="80dp"/>
-
+            <ImageButton
+                android:id="@+id/button_delete_tag"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="14dp"
+                android:background="@android:drawable/ic_menu_delete" />
         </RelativeLayout>
-    </ScrollView>
+
+        <ScrollView
+            android:id="@+id/scrollview_tag_info"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:background="@color/colorPrimary"
+            android:elevation="4dp"
+            android:layout_below="@+id/relativelayout_tag_info_top_bar">
+
+            <RelativeLayout
+                android:id="@+id/relativelayout_tag_info"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:orientation="vertical"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp"
+                android:paddingTop="10dp">
+
+                <TextView
+                    android:id="@+id/textview_tag_info_bee_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:text="1337 (Sabiene)"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/colorText"
+                    android:textSize="20dp" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_static_bee_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@+id/textview_tag_info_bee_id"
+                    android:layout_alignParentLeft="true"
+                    android:text="Bee"
+                    android:textColor="@color/colorText"
+                    android:textSize="15dp"
+                    android:textStyle="italic" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@id/textview_tag_info_bee_id"
+                    android:paddingTop="10dp"
+                    android:text="14:36"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/colorAccent"
+                    android:textSize="20dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@id/textview_tag_info_time"
+                    android:layout_toLeftOf="@id/textview_tag_info_time"
+                    android:paddingRight="8dp"
+                    android:text="24.12.2018"
+                    android:textColor="@color/colorAccent"
+                    android:textSize="20dp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_static_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@id/textview_tag_info_time"
+                    android:text="Time of observation"
+                    android:textColor="@color/colorText"
+                    android:textSize="15dp"
+                    android:textStyle="italic" />
+
+                <EditText
+                    android:id="@+id/edittext_tag_info_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@id/textview_tag_info_time"
+                    android:hint="e.g. ''experiment #1''"
+                    android:imeOptions="actionDone"
+                    android:inputType="text"
+                    android:maxWidth="250dp"
+                    android:minWidth="150dp"
+                    android:paddingTop="10dp"
+                    android:textAlignment="textEnd"
+                    android:textSize="15dp" />
+
+                <EditText
+                    android:id="@+id/edittext_tag_info_notes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@+id/edittext_tag_info_label"
+                    android:hint="e.g. ''needs checking''"
+                    android:imeOptions="actionDone"
+                    android:inputType="textMultiLine"
+                    android:maxWidth="250dp"
+                    android:minWidth="150dp"
+                    android:paddingTop="10dp"
+                    android:textAlignment="textStart"
+                    android:textSize="15dp" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@id/edittext_tag_info_label"
+                    android:text="Label"
+                    android:textColor="@color/colorText"
+                    android:textSize="15dp"
+                    android:textStyle="italic" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_notes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignBaseline="@+id/edittext_tag_info_notes"
+                    android:layout_below="@+id/textview_tag_info_label"
+                    android:text="Notes"
+                    android:textColor="@color/colorText"
+                    android:textSize="15dp"
+                    android:textStyle="italic" />
+            </RelativeLayout>
+        </ScrollView>
+    </RelativeLayout>
 </RelativeLayout>
