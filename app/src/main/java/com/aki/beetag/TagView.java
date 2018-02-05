@@ -111,10 +111,10 @@ public class TagView extends SubsamplingScaleImageView {
     }
 
     // runs a zoom and translation animation that puts the given tag
-    // in the center of the screen so the user can edit it
-    public void moveViewToTag(Tag tag) {
-        float scale = (getWidth() * 0.95f) / (tag.getRadius() * 2 * TagView.VISUALIZATION_OUTER_SCALE);
-        PointF center = new PointF(tag.getCenterX(), tag.getCenterY());
+    // in the center of the available space at the bottom so the user can edit it
+    public void moveViewToTag(Tag tag, PointF tagCenterInView, int diameter) {
+        float scale = diameter / (tag.getRadius() * 2 * TagView.VISUALIZATION_OUTER_SCALE);
+        PointF center = new PointF(tag.getCenterX(), tag.getCenterY() - (tagCenterInView.y - getHeight() / 2) / scale);
         lastViewState = getState();
         animateScaleAndCenter(scale, center)
                 .withEasing(EASE_IN_OUT_QUAD)
@@ -124,7 +124,7 @@ public class TagView extends SubsamplingScaleImageView {
     }
 
     // runs a zoom and translation animation that puts the field of view
-    // back to the state that it was in, before the user edited a tag
+    // back to the state that it was in before the user edited a tag
     public void moveViewBack() {
         animateScaleAndCenter(lastViewState.getScale(), lastViewState.getCenter())
                 .withEasing(EASE_IN_OUT_QUAD)

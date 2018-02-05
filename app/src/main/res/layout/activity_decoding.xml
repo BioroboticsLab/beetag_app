@@ -24,24 +24,19 @@
             android:id="@+id/button_tag"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="top|right"
-            android:layout_margin="24dp"
-            app:backgroundTint="@color/colorAccent" />
-
-        <android.support.design.widget.FloatingActionButton
-            android:id="@+id/button_save_edited_tag"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:layout_gravity="bottom|right"
             android:layout_margin="24dp"
-            app:backgroundTint="@color/colorSave" />
+            app:backgroundTint="@color/colorAccent" />
 
     </android.support.design.widget.CoordinatorLayout>
 
 
     <RelativeLayout
+        android:id="@+id/relativelayout_tag_info"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
 
         <RelativeLayout
             android:id="@+id/relativelayout_tag_info_top_bar"
@@ -68,18 +63,40 @@
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="14dp"
                 android:background="@android:drawable/ic_menu_delete" />
+
+            <ImageButton
+                android:id="@+id/button_save_edited_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="70dp"
+                android:background="@android:drawable/ic_menu_save" />
+
+            <TextView
+                android:id="@+id/button_text_input_done"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="20dp"
+                android:text="DONE"
+                android:textSize="17sp"
+                android:background="@android:drawable/list_selector_background"
+                android:shadowColor="#ff000000"
+                android:shadowRadius="3"
+                android:textColor="#f0ffffff" />
         </RelativeLayout>
 
         <ScrollView
             android:id="@+id/scrollview_tag_info"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="180dp"
             android:background="@color/colorPrimary"
             android:elevation="4dp"
             android:layout_below="@+id/relativelayout_tag_info_top_bar">
 
             <RelativeLayout
-                android:id="@+id/relativelayout_tag_info"
+                android:id="@+id/relativelayout_tag_info_data"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:focusable="true"
@@ -97,7 +114,7 @@
                     android:text="1337 (Sabiene)"
                     android:textAlignment="textEnd"
                     android:textColor="@color/colorText"
-                    android:textSize="20dp" />
+                    android:textSize="20sp" />
 
                 <TextView
                     android:id="@+id/textview_tag_info_static_bee_id"
@@ -107,7 +124,7 @@
                     android:layout_alignParentLeft="true"
                     android:text="Bee"
                     android:textColor="@color/colorText"
-                    android:textSize="15dp"
+                    android:textSize="15sp"
                     android:textStyle="italic" />
 
                 <TextView
@@ -120,7 +137,7 @@
                     android:text="14:36"
                     android:textAlignment="textEnd"
                     android:textColor="@color/colorAccent"
-                    android:textSize="20dp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -132,7 +149,7 @@
                     android:paddingRight="8dp"
                     android:text="24.12.2018"
                     android:textColor="@color/colorAccent"
-                    android:textSize="20dp"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -142,7 +159,7 @@
                     android:layout_alignBaseline="@id/textview_tag_info_time"
                     android:text="Time of observation"
                     android:textColor="@color/colorText"
-                    android:textSize="15dp"
+                    android:textSize="15sp"
                     android:textStyle="italic" />
 
                 <EditText
@@ -152,13 +169,13 @@
                     android:layout_alignParentRight="true"
                     android:layout_below="@id/textview_tag_info_time"
                     android:hint="e.g. ''experiment #1''"
-                    android:imeOptions="actionDone"
                     android:inputType="text"
                     android:maxWidth="250dp"
                     android:minWidth="150dp"
                     android:paddingTop="10dp"
                     android:textAlignment="textEnd"
-                    android:textSize="15dp" />
+                    android:textSize="15sp"
+                    android:gravity="end"/>
 
                 <EditText
                     android:id="@+id/edittext_tag_info_notes"
@@ -167,13 +184,12 @@
                     android:layout_alignParentRight="true"
                     android:layout_below="@+id/edittext_tag_info_label"
                     android:hint="e.g. ''needs checking''"
-                    android:imeOptions="actionDone"
                     android:inputType="textMultiLine"
                     android:maxWidth="250dp"
                     android:minWidth="150dp"
                     android:paddingTop="10dp"
                     android:textAlignment="textStart"
-                    android:textSize="15dp" />
+                    android:textSize="15sp" />
 
                 <TextView
                     android:id="@+id/textview_tag_info_label"
@@ -182,7 +198,7 @@
                     android:layout_alignBaseline="@id/edittext_tag_info_label"
                     android:text="Label"
                     android:textColor="@color/colorText"
-                    android:textSize="15dp"
+                    android:textSize="15sp"
                     android:textStyle="italic" />
 
                 <TextView
@@ -193,7 +209,7 @@
                     android:layout_below="@+id/textview_tag_info_label"
                     android:text="Notes"
                     android:textColor="@color/colorText"
-                    android:textSize="15dp"
+                    android:textSize="15sp"
                     android:textStyle="italic" />
             </RelativeLayout>
         </ScrollView>

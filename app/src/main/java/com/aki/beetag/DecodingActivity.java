@@ -3,6 +3,7 @@ package com.aki.beetag;
 import android.app.Activity;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -18,7 +19,12 @@ import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -54,10 +60,15 @@ public class DecodingActivity extends Activity {
     private ViewMode viewMode;
 
     private TagView tagView;
+    private RelativeLayout tagInfoLayout;
+    private ScrollView tagInfoScrollView;
     private FloatingActionButton tagButton;
-    private FloatingActionButton deleteTagButton;
-    private FloatingActionButton saveEditedTagButton;
-    private ScrollView tagInfoView;
+    private ImageButton cancelTagEditingButton;
+    private ImageButton deleteTagButton;
+    private ImageButton saveEditedTagButton;
+    private TextView textInputDoneButton;
+    private EditText tagLabelEditText;
+    private EditText tagNotesEditText;
 
     private File imageFolder;
     private Uri imageUri;
@@ -325,6 +336,30 @@ public class DecodingActivity extends Activity {
         database = databaseBuilder.build();
         dao = database.getDao();
 
+        tagInfoLayout = findViewById(R.id.relativelayout_tag_info);
+        tagInfoScrollView = findViewById(R.id.scrollview_tag_info);
+
+        View.OnFocusChangeListener onFocusChangeListener = new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    cancelTagEditingButton.setVisibility(View.INVISIBLE);
+                    deleteTagButton.setVisibility(View.INVISIBLE);
+                    saveEditedTagButton.setVisibility(View.INVISIBLE);
+                    textInputDoneButton.setVisibility(View.VISIBLE);
+                } else {
+                    cancelTagEditingButton.setVisibility(View.VISIBLE);
+                    deleteTagButton.setVisibility(View.VISIBLE);
+                    saveEditedTagButton.setVisibility(View.VISIBLE);
+                    textInputDoneButton.setVisibility(View.INVISIBLE);
+                }
+            }
+        };
+        tagLabelEditText = findViewById(R.id.edittext_tag_info_label);
+        tagLabelEditText.setOnFocusChangeListener(onFocusChangeListener);
+        tagNotesEditText = findViewById(R.id.edittext_tag_info_notes);
+        tagNotesEditText.setOnFocusChangeListener(onFocusChangeListener);
+
         tagButton = findViewById(R.id.button_tag);
         tagButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -355,6 +390,19 @@ public class DecodingActivity extends Activity {
             }
         });
 
+        cancelTagEditingButton = findViewById(R.id.button_tag_info_cancel);
+        cancelTagEditingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
+                    return;
+                }
+
+                new GetTagsTask().execute(imageName);
+                setViewMode(ViewMode.TAGGING_MODE);
+            }
+        });
+
         deleteTagButton = findViewById(R.id.button_delete_tag);
         deleteTagButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -369,7 +417,26 @@ public class DecodingActivity extends Activity {
                 }
             }
         });
-        deleteTagButton.setVisibility(View.INVISIBLE);
+
+        textInputDoneButton = findViewById(R.id.button_text_input_done);
+        textInputDoneButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!tagView.isReady()) {
+                    return;
+                }
+
+                View focusedView = getCurrentFocus();
+                if (focusedView != null) {
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.hideSoftInputFromWindow(focusedView.getWindowToken(), 0);
+                    }
+                    tagInfoLayout.requestFocus();
+                }
+                tagInfoScrollView.smoothScrollTo(0, 0);
+            }
+        });
 
         saveEditedTagButton = findViewById(R.id.button_save_edited_tag);
         saveEditedTagButton.setOnClickListener(new View.OnClickListener() {
@@ -386,10 +453,8 @@ public class DecodingActivity extends Activity {
                 }
             }
         });
-        saveEditedTagButton.setVisibility(View.INVISIBLE);
 
         tagView = findViewById(R.id.tag_view);
-        setViewMode(ViewMode.TAGGING_MODE);
         tagView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
         tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
@@ -399,7 +464,7 @@ public class DecodingActivity extends Activity {
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
                 if (!tagView.isReady()) {
-                    return true;
+                    return false;
                 }
 
                 PointF tap = tagView.viewToSourceCoord(e.getX(), e.getY());
@@ -421,8 +486,7 @@ public class DecodingActivity extends Activity {
                         // update view to show changed tag
                         tagView.invalidate();
                     } else {
-                        new GetTagsTask().execute(imageName);
-                        setViewMode(ViewMode.TAGGING_MODE);
+                        return false;
                     }
                 }
                 return true;
@@ -440,15 +504,13 @@ public class DecodingActivity extends Activity {
                                 null,
                                 new View.DragShadowBuilder(),
                                 null,
-                                0
-                        );
+                                0);
                     } else {
                         tagView.startDragAndDrop(
                                 null,
                                 new View.DragShadowBuilder(),
                                 null,
-                                0
-                        );
+                                0);
                     }
                 }
             }
@@ -494,34 +556,41 @@ public class DecodingActivity extends Activity {
 
         new GetTagsTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
-
-        tagInfoView = findViewById(R.id.scrollview_tag_info);
+        setViewMode(ViewMode.TAGGING_MODE);
     }
 
     // sets the view mode and changes UI accordingly
     private void setViewMode(ViewMode viewMode) {
         this.viewMode = viewMode;
         tagView.setViewMode(viewMode);
-        if (!tagView.isReady()) {
-            return;
-        }
         switch (viewMode) {
             case TAGGING_MODE:
                 tagButton.setVisibility(View.VISIBLE);
-                deleteTagButton.setVisibility(View.INVISIBLE);
-                saveEditedTagButton.setVisibility(View.INVISIBLE);
                 currentlyEditedTag = null;
-                tagInfoView.setVisibility(View.INVISIBLE);
+                tagInfoLayout.setVisibility(View.INVISIBLE);
                 tagView.setPanEnabled(true);
                 tagView.setZoomEnabled(true);
-                tagView.moveViewBack();
+                if (tagView.isReady()) {
+                    tagView.moveViewBack();
+                }
                 break;
             case EDITING_MODE:
                 tagButton.setVisibility(View.INVISIBLE);
-                deleteTagButton.setVisibility(View.VISIBLE);
-                saveEditedTagButton.setVisibility(View.VISIBLE);
-                tagInfoView.setVisibility(View.VISIBLE);
-                tagView.moveViewToTag(currentlyEditedTag);
+                textInputDoneButton.setVisibility(View.INVISIBLE);
+                tagInfoLayout.setVisibility(View.VISIBLE);
+                if (tagView.isReady()) {
+                    PointF tagCenterInView = new PointF(
+                            tagView.getWidth() / 2,
+                            (tagView.getHeight() + tagInfoLayout.getHeight()) / 2
+                    );
+                    int diameter = Math.round(Math.min(
+                            tagView.getHeight() - tagInfoLayout.getHeight(),
+                            tagView.getWidth()) * 0.95f);
+                    tagView.moveViewToTag(
+                            currentlyEditedTag,
+                            tagCenterInView,
+                            diameter);
+                }
                 tagView.setPanEnabled(false);
                 tagView.setZoomEnabled(false);
                 break;
