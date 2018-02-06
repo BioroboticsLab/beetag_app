@@ -11,7 +11,7 @@
     <android.support.design.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorBackground">
+        android:background="#000000">
 
         <com.aki.beetag.TagView
             android:id="@+id/tag_view"
@@ -103,18 +103,39 @@
                 android:focusableInTouchMode="true"
                 android:orientation="vertical"
                 android:paddingLeft="20dp"
-                android:paddingRight="20dp"
-                android:paddingTop="10dp">
+                android:paddingRight="20dp">
 
                 <TextView
                     android:id="@+id/textview_tag_info_bee_id"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
+                    android:layout_marginTop="10dp"
                     android:text="1337 (Sabiene)"
                     android:textAlignment="textEnd"
                     android:textColor="@color/colorText"
                     android:textSize="20sp" />
+
+                <TextView
+                    android:id="@+id/textview_tag_info_detection_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/textview_tag_info_bee_id"
+                    android:layout_alignParentRight="true"
+                    android:text="137"
+                    android:textSize="12sp"
+                    android:textStyle="italic"/>
+
+                <TextView
+                    android:id="@+id/textview_tag_info_static_detection_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toLeftOf="@id/textview_tag_info_detection_id"
+                    android:layout_alignBaseline="@id/textview_tag_info_detection_id"
+                    android:layout_marginRight="5dp"
+                    android:text="Detection ID:"
+                    android:textSize="12sp"
+                    android:textStyle="italic"/>
 
                 <TextView
                     android:id="@+id/textview_tag_info_static_bee_id"
@@ -132,8 +153,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
-                    android:layout_below="@id/textview_tag_info_bee_id"
-                    android:paddingTop="10dp"
+                    android:layout_below="@id/textview_tag_info_detection_id"
                     android:text="14:36"
                     android:textAlignment="textEnd"
                     android:textColor="@color/colorAccent"
@@ -146,7 +166,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignBaseline="@id/textview_tag_info_time"
                     android:layout_toLeftOf="@id/textview_tag_info_time"
-                    android:paddingRight="8dp"
+                    android:layout_marginRight="8dp"
                     android:text="24.12.2018"
                     android:textColor="@color/colorAccent"
                     android:textSize="20sp"
@@ -172,7 +192,6 @@
                     android:inputType="text"
                     android:maxWidth="250dp"
                     android:minWidth="150dp"
-                    android:paddingTop="10dp"
                     android:textAlignment="textEnd"
                     android:textSize="15sp"
                     android:gravity="end"/>
@@ -187,7 +206,6 @@
                     android:inputType="textMultiLine"
                     android:maxWidth="250dp"
                     android:minWidth="150dp"
-                    android:paddingTop="10dp"
                     android:textAlignment="textStart"
                     android:textSize="15sp" />
 

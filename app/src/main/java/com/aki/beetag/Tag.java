@@ -19,7 +19,7 @@ public class Tag {
     private String beeName;
     private String label;
     private String imageName;
-    private String imageNameSingle;
+    private String notes;
     private float centerX;
     private float centerY;
     private float radius;
@@ -32,7 +32,7 @@ public class Tag {
             String beeName,
             String label,
             String imageName,
-            String imageNameSingle,
+            String notes,
             float centerX,
             float centerY,
             float radius,
@@ -43,7 +43,7 @@ public class Tag {
         this.beeName = beeName;
         this.label = label;
         this.imageName = imageName;
-        this.imageNameSingle = imageNameSingle;
+        this.notes = notes;
         this.centerX = centerX;
         this.centerY = centerY;
         this.radius = radius;
@@ -101,12 +101,12 @@ public class Tag {
         this.imageName = imageName;
     }
 
-    public String getImageNameSingle() {
-        return imageNameSingle;
+    public String getNotes() {
+        return notes;
     }
 
-    public void setImageNameSingle(String imageNameSingle) {
-        this.imageNameSingle = imageNameSingle;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public float getCenterX() {

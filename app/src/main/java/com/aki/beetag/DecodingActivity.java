@@ -67,6 +67,8 @@ public class DecodingActivity extends Activity {
     private ImageButton deleteTagButton;
     private ImageButton saveEditedTagButton;
     private TextView textInputDoneButton;
+
+    private TextView beeIdTextView;
     private EditText tagLabelEditText;
     private EditText tagNotesEditText;
 
@@ -360,6 +362,8 @@ public class DecodingActivity extends Activity {
         tagNotesEditText = findViewById(R.id.edittext_tag_info_notes);
         tagNotesEditText.setOnFocusChangeListener(onFocusChangeListener);
 
+        beeIdTextView = findViewById(R.id.textview_tag_info_bee_id);
+
         tagButton = findViewById(R.id.button_tag);
         tagButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -426,6 +430,9 @@ public class DecodingActivity extends Activity {
                     return;
                 }
 
+                currentlyEditedTag.setLabel(tagLabelEditText.getText().toString());
+                currentlyEditedTag.setNotes(tagNotesEditText.getText().toString());
+
                 View focusedView = getCurrentFocus();
                 if (focusedView != null) {
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -485,6 +492,7 @@ public class DecodingActivity extends Activity {
                         currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
                         // update view to show changed tag
                         tagView.invalidate();
+                        beeIdTextView.setText(Integer.toString(currentlyEditedTag.getBeeId()));
                     } else {
                         return false;
                     }
@@ -575,6 +583,7 @@ public class DecodingActivity extends Activity {
                 }
                 break;
             case EDITING_MODE:
+
                 tagButton.setVisibility(View.INVISIBLE);
                 textInputDoneButton.setVisibility(View.INVISIBLE);
                 tagInfoLayout.setVisibility(View.VISIBLE);
