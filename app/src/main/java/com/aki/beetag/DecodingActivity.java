@@ -30,6 +30,7 @@ import android.widget.Toast;
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
+import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.msgpack.core.MessagePack;
@@ -71,6 +72,9 @@ public class DecodingActivity extends Activity {
     private TextView beeIdTextView;
     private EditText tagLabelEditText;
     private EditText tagNotesEditText;
+    private TextView tagDateTextView;
+    private TextView tagTimeTextView;
+    private TextView detectionIdTextView;
 
     private File imageFolder;
     private Uri imageUri;
@@ -260,7 +264,6 @@ public class DecodingActivity extends Activity {
             }
 
             new DatabaseInsertTask().execute(result.get(0));
-            Toast.makeText(getApplicationContext(), "" + result.get(0).getBeeId(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -364,11 +367,17 @@ public class DecodingActivity extends Activity {
 
         beeIdTextView = findViewById(R.id.textview_tag_info_bee_id);
 
+        tagDateTextView = findViewById(R.id.textview_tag_info_date);
+
+        tagTimeTextView = findViewById(R.id.textview_tag_info_time);
+
+        detectionIdTextView = findViewById(R.id.textview_tag_info_detection_id);
+
         tagButton = findViewById(R.id.button_tag);
         tagButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!tagView.isReady()) {
+                if (!tagView.isReady() || viewMode != ViewMode.TAGGING_MODE) {
                     return;
                 }
 
@@ -411,7 +420,7 @@ public class DecodingActivity extends Activity {
         deleteTagButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!tagView.isReady()) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
                     return;
                 }
 
@@ -426,7 +435,7 @@ public class DecodingActivity extends Activity {
         textInputDoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!tagView.isReady()) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
                     return;
                 }
 
@@ -449,13 +458,12 @@ public class DecodingActivity extends Activity {
         saveEditedTagButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (!tagView.isReady()) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
                     return;
                 }
 
                 if (currentlyEditedTag != null) {
                     new DatabaseUpdateTask().execute(currentlyEditedTag);
-                    Toast.makeText(getApplicationContext(), "" + currentlyEditedTag.getBeeId(), Toast.LENGTH_LONG).show();
                     setViewMode(ViewMode.TAGGING_MODE);
                 }
             }
@@ -583,7 +591,22 @@ public class DecodingActivity extends Activity {
                 }
                 break;
             case EDITING_MODE:
-
+                beeIdTextView.setText(String.format(
+                        getResources().getString(R.string.bee_id),
+                        currentlyEditedTag.getBeeId()));
+                DateTime tagDate = currentlyEditedTag.getDate();
+                tagDateTextView.setText(String.format(
+                        getResources().getString(R.string.tag_date),
+                        tagDate.getDayOfMonth(),
+                        tagDate.monthOfYear().getAsShortText(),
+                        tagDate.getYear()));
+                tagTimeTextView.setText(String.format(
+                        getResources().getString(R.string.tag_time),
+                        tagDate.getHourOfDay(),
+                        tagDate.getMinuteOfHour()));
+                detectionIdTextView.setText(String.format(
+                        getResources().getString(R.string.tag_detection_id),
+                        currentlyEditedTag.getEntryId()));
                 tagButton.setVisibility(View.INVISIBLE);
                 textInputDoneButton.setVisibility(View.INVISIBLE);
                 tagInfoLayout.setVisibility(View.VISIBLE);

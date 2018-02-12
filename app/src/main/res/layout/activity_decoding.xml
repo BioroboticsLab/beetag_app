@@ -122,18 +122,7 @@
                     android:layout_height="wrap_content"
                     android:layout_below="@id/textview_tag_info_bee_id"
                     android:layout_alignParentRight="true"
-                    android:text="137"
-                    android:textSize="12sp"
-                    android:textStyle="italic"/>
-
-                <TextView
-                    android:id="@+id/textview_tag_info_static_detection_id"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_toLeftOf="@id/textview_tag_info_detection_id"
-                    android:layout_alignBaseline="@id/textview_tag_info_detection_id"
-                    android:layout_marginRight="5dp"
-                    android:text="Detection ID:"
+                    android:text="@string/tag_detection_id"
                     android:textSize="12sp"
                     android:textStyle="italic"/>
 
