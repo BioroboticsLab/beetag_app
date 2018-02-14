@@ -1,6 +1,9 @@
 package com.aki.beetag;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.DialogFragment;
+import android.app.TimePickerDialog;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
@@ -15,6 +18,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
+import android.text.format.DateFormat;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -25,12 +29,14 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 
 import org.joda.time.DateTime;
+import org.joda.time.MutableDateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.msgpack.core.MessagePack;
@@ -53,7 +59,7 @@ import java.util.List;
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
 
-public class DecodingActivity extends Activity {
+public class DecodingActivity extends Activity implements TagTimePickerFragment.OnTagTimePickedListener {
 
     public enum ViewMode {
         TAGGING_MODE, EDITING_MODE
@@ -325,9 +331,7 @@ public class DecodingActivity extends Activity {
 
         Intent intent = getIntent();
         imageUri = intent.getData();
-        imageFolder = new File(
-                ((Uri) intent.getExtras().get("imageFolder")).getPath()
-        );
+        imageFolder = new File(((Uri) intent.getExtras().get("imageFolder")).getPath());
 
         // get image name from uri
         if (imageUri.getScheme().equals("file")) {
@@ -370,6 +374,17 @@ public class DecodingActivity extends Activity {
         tagDateTextView = findViewById(R.id.textview_tag_info_date);
 
         tagTimeTextView = findViewById(R.id.textview_tag_info_time);
+        tagTimeTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
+                    return;
+                }
+
+                DialogFragment tagTimePickerFragment = new TagTimePickerFragment();
+                tagTimePickerFragment.show(getFragmentManager(), "tagTimePicker");
+            }
+        });
 
         detectionIdTextView = findViewById(R.id.textview_tag_info_detection_id);
 
@@ -573,6 +588,23 @@ public class DecodingActivity extends Activity {
         new GetTagsTask().execute(imageName);
         tagView.setImage(ImageSource.uri(imageUri));
         setViewMode(ViewMode.TAGGING_MODE);
+    }
+
+    @Override
+    public void onTagTimePicked(int hour, int minute) {
+        if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
+            return;
+        }
+
+        MutableDateTime mutableTagDate = currentlyEditedTag.getDate().toMutableDateTime();
+        mutableTagDate.setHourOfDay(hour);
+        mutableTagDate.setMinuteOfHour(minute);
+        DateTime tagDate = mutableTagDate.toDateTime();
+        currentlyEditedTag.setDate(tagDate);
+        tagTimeTextView.setText(String.format(
+                getResources().getString(R.string.tag_time),
+                tagDate.getHourOfDay(),
+                tagDate.getMinuteOfHour()));
     }
 
     // sets the view mode and changes UI accordingly
