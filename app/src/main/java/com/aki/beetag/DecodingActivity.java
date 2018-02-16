@@ -231,6 +231,7 @@ public class DecodingActivity
                     tag.setImageName(imageName);
                     tag.setOrientation(orientations.get(i));
                     tag.setBeeId(Tag.bitIdToDecimalId(ids.get(i)));
+                    // TODO: set date to image last modified date
                     tags.add(tag);
                 }
             } catch (IOException e) {

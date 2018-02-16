@@ -35,6 +35,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Locale;
 
@@ -53,6 +54,13 @@ public class GalleryActivity extends AppCompatActivity {
     private File imageFolder;
     private File lastImageFile;
 
+    private Comparator<File> reverseFileDateComparator = new Comparator<File>() {
+        @Override
+        public int compare(File l, File r) {
+            return Long.compare(r.lastModified(), l.lastModified());
+        }
+    };
+
     // ImageAdapter gets images from folder and supplies GridView with ImageViews to display
     private class ImageAdapter extends BaseAdapter {
 
@@ -62,7 +70,7 @@ public class GalleryActivity extends AppCompatActivity {
         public ImageAdapter(Context c) {
             this.context = c;
             imageFiles = imageFolder.listFiles();
-            Arrays.sort(imageFiles, Collections.reverseOrder());
+            Arrays.sort(imageFiles, reverseFileDateComparator);
         }
 
         @Override
@@ -109,7 +117,7 @@ public class GalleryActivity extends AppCompatActivity {
         @Override
         public void notifyDataSetChanged() {
             imageFiles = imageFolder.listFiles();
-            Arrays.sort(imageFiles, Collections.reverseOrder());
+            Arrays.sort(imageFiles, reverseFileDateComparator);
             super.notifyDataSetChanged();
         }
     }
