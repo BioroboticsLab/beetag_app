@@ -59,7 +59,10 @@ import java.util.List;
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
 
-public class DecodingActivity extends Activity implements TagTimePickerFragment.OnTagTimePickedListener {
+public class DecodingActivity
+        extends Activity
+        implements TagTimePickerFragment.OnTagTimePickedListener,
+                   TagDatePickerFragment.OnTagDatePickedListener {
 
     public enum ViewMode {
         TAGGING_MODE, EDITING_MODE
@@ -372,6 +375,17 @@ public class DecodingActivity extends Activity implements TagTimePickerFragment.
         beeIdTextView = findViewById(R.id.textview_tag_info_bee_id);
 
         tagDateTextView = findViewById(R.id.textview_tag_info_date);
+        tagDateTextView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
+                    return;
+                }
+
+                DialogFragment tagDatePickerFragment = new TagDatePickerFragment();
+                tagDatePickerFragment.show(getFragmentManager(), "tagDatePicker");
+            }
+        });
 
         tagTimeTextView = findViewById(R.id.textview_tag_info_time);
         tagTimeTextView.setOnClickListener(new View.OnClickListener() {
@@ -605,6 +619,25 @@ public class DecodingActivity extends Activity implements TagTimePickerFragment.
                 getResources().getString(R.string.tag_time),
                 tagDate.getHourOfDay(),
                 tagDate.getMinuteOfHour()));
+    }
+
+    @Override
+    public void onTagDatePicked(int year, int month, int day) {
+        if (!tagView.isReady() || viewMode != ViewMode.EDITING_MODE) {
+            return;
+        }
+
+        MutableDateTime mutableTagDate = currentlyEditedTag.getDate().toMutableDateTime();
+        mutableTagDate.setYear(year);
+        mutableTagDate.setMonthOfYear(month);
+        mutableTagDate.setDayOfMonth(day);
+        DateTime tagDate = mutableTagDate.toDateTime();
+        currentlyEditedTag.setDate(tagDate);
+        tagDateTextView.setText(String.format(
+                getResources().getString(R.string.tag_date),
+                tagDate.getDayOfMonth(),
+                tagDate.monthOfYear().getAsShortText(),
+                tagDate.getYear()));
     }
 
     // sets the view mode and changes UI accordingly
