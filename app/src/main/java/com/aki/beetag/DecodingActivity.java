@@ -323,6 +323,7 @@ public class DecodingActivity
 
         @Override
         protected void onPostExecute(Void aVoid) {
+            Toast.makeText(getApplicationContext(), "Tag saved.", Toast.LENGTH_SHORT).show();
             new GetTagsTask().execute(imageName);
         }
     }
@@ -672,6 +673,8 @@ public class DecodingActivity
                 detectionIdTextView.setText(String.format(
                         getResources().getString(R.string.tag_detection_id),
                         currentlyEditedTag.getEntryId()));
+                tagLabelEditText.setText(currentlyEditedTag.getLabel());
+                tagNotesEditText.setText(currentlyEditedTag.getNotes());
                 tagButton.setVisibility(View.INVISIBLE);
                 textInputDoneButton.setVisibility(View.INVISIBLE);
                 tagInfoLayout.setVisibility(View.VISIBLE);
@@ -695,6 +698,7 @@ public class DecodingActivity
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException {
+        // TODO: use Uri.Builder for this
         String address = "http://662a6528.ngrok.io/process";
 
         JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});

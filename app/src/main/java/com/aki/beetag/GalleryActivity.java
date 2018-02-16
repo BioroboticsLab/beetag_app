@@ -1,7 +1,6 @@
 package com.aki.beetag;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,19 +12,21 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import static com.bumptech.glide.request.RequestOptions.centerCropTransform;
 
 import java.io.File;
@@ -43,7 +44,6 @@ public class GalleryActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
-    private Toolbar toolbar;
     private FloatingActionButton cameraButton;
     private GridView imageGridView;
 
@@ -157,18 +157,9 @@ public class GalleryActivity extends AppCompatActivity {
     private void dispatchCaptureIntent() {
         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (captureIntent.resolveActivity(getPackageManager()) != null) {
-            lastImageFile = null;
-            try {
-                lastImageFile = createImageFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (lastImageFile != null) {
-                String authorities = getApplicationContext().getPackageName() + ".fileprovider";
-                Uri imageUri = FileProvider.getUriForFile(this, authorities, lastImageFile);
-                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
-                startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
-            }
+            lastImageFile = createImageFile(DateTime.now());
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastImageFile));
+            startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
         }
     }
 
@@ -179,23 +170,13 @@ public class GalleryActivity extends AppCompatActivity {
             case REQUEST_CAPTURE_IMAGE:
                 if (resultCode == RESULT_OK) {
                     // rename image file so that timestamp is correct
-                    try {
-                        // TODO: take exif date instead of current date
-                        if (lastImageFile.renameTo(createImageFile())) {
-                            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
-                        } else {
-                            Toast.makeText(this, "Renaming failed, timestamp of image " +
-                                    "in 'Beetags' folder may be wrong.", Toast.LENGTH_LONG).show();
-                            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    // delete image file
-                    if (!lastImageFile.delete()) {
-                        Toast.makeText(this, "Deletion failed, there may be empty " +
-                                "image files in 'Beetags' folder.", Toast.LENGTH_LONG).show();
+                    DateTime lastModified = new DateTime(lastImageFile.lastModified());
+                    if (lastImageFile.renameTo(createImageFile(lastModified))) {
+                        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
+                    } else {
+                        Toast.makeText(this, "Renaming failed, timestamp of image " +
+                                "in 'Beetags' folder may be wrong.", Toast.LENGTH_LONG).show();
+                        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                     }
                 }
                 break;
@@ -257,10 +238,19 @@ public class GalleryActivity extends AppCompatActivity {
         }
     }
 
-    private File createImageFile() throws IOException {
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(new Date());
-        File imgFile = File.createTempFile(timestamp + "_", ".jpg", imageFolder);
-        return imgFile;
+    private File createImageFile(DateTime date) {
+        DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd_HH-mm-ss");
+        String fileName = "bees_" + formatter.print(date);
+        File file = new File(imageFolder.getPath(), fileName + ".jpg");
+        if (file.exists()) {
+            int i = 0;
+            file = new File(imageFolder.getPath(), fileName + "_" + i + ".jpg");
+            while (file.exists()) {
+                i++;
+                file = new File(imageFolder.getPath(), fileName + "_" + i + ".jpg");
+            }
+        }
+        return file;
     }
 
     private void checkPermissions() {
