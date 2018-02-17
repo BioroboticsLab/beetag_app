@@ -87,7 +87,6 @@ public class DecodingActivity
 
     private File imageFolder;
     private Uri imageUri;
-    private String imageName;
 
     private TagDatabase database = null;
     private TagDao dao;
@@ -228,10 +227,10 @@ public class DecodingActivity
                     tag.setCenterX(data.tagCenter.x);
                     tag.setCenterY(data.tagCenter.y);
                     tag.setRadius(data.tagSizeInPx / 2);
-                    tag.setImageName(imageName);
+                    tag.setImageName(imageUri.getLastPathSegment());
                     tag.setOrientation(orientations.get(i));
                     tag.setBeeId(Tag.bitIdToDecimalId(ids.get(i)));
-                    // TODO: set date to image last modified date
+                    tag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
                     tags.add(tag);
                 }
             } catch (IOException e) {
@@ -263,12 +262,13 @@ public class DecodingActivity
                 Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
                 Tag resultTag = new Tag();
                 resultTag.setBeeId(0);
-                resultTag.setImageName(imageName);
+                resultTag.setImageName(imageUri.getLastPathSegment());
                 PointF tagCenter = tagView.getCenter();
                 resultTag.setCenterX(tagCenter.x);
                 resultTag.setCenterY(tagCenter.y);
                 resultTag.setRadius(tagView.getTagCircleRadius() / tagView.getScale());
                 resultTag.setOrientation(0);
+                resultTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
                 new DatabaseInsertTask().execute(resultTag);
                 return;
             }
@@ -277,10 +277,10 @@ public class DecodingActivity
         }
     }
 
-    private class GetTagsTask extends AsyncTask<String, Void, List<Tag>> {
+    private class GetTagsTask extends AsyncTask<Uri, Void, List<Tag>> {
         @Override
-        protected List<Tag> doInBackground(String... files) {
-            return dao.loadTagsByImage(files[0]);
+        protected List<Tag> doInBackground(Uri... uris) {
+            return dao.loadTagsByImage(uris[0].getLastPathSegment());
         }
 
         @Override
@@ -298,7 +298,7 @@ public class DecodingActivity
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            new GetTagsTask().execute(imageName);
+            new GetTagsTask().execute(imageUri);
         }
     }
 
@@ -311,7 +311,7 @@ public class DecodingActivity
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            new GetTagsTask().execute(imageName);
+            new GetTagsTask().execute(imageUri);
         }
     }
 
@@ -325,7 +325,7 @@ public class DecodingActivity
         @Override
         protected void onPostExecute(Void aVoid) {
             Toast.makeText(getApplicationContext(), "Tag saved.", Toast.LENGTH_SHORT).show();
-            new GetTagsTask().execute(imageName);
+            new GetTagsTask().execute(imageUri);
         }
     }
 
@@ -337,13 +337,6 @@ public class DecodingActivity
         Intent intent = getIntent();
         imageUri = intent.getData();
         imageFolder = new File(((Uri) intent.getExtras().get("imageFolder")).getPath());
-
-        // get image name from uri
-        if (imageUri.getScheme().equals("file")) {
-            imageName = imageUri.getLastPathSegment();
-        } else {
-            imageName = "unknown";
-        }
 
         RoomDatabase.Builder<TagDatabase> databaseBuilder = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database");
         databaseBuilder.fallbackToDestructiveMigration();
@@ -442,7 +435,7 @@ public class DecodingActivity
                     return;
                 }
 
-                new GetTagsTask().execute(imageName);
+                new GetTagsTask().execute(imageUri);
                 setViewMode(ViewMode.TAGGING_MODE);
             }
         });
@@ -601,7 +594,7 @@ public class DecodingActivity
             }
         });
 
-        new GetTagsTask().execute(imageName);
+        new GetTagsTask().execute(imageUri);
         tagView.setImage(ImageSource.uri(imageUri));
         setViewMode(ViewMode.TAGGING_MODE);
     }
