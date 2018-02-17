@@ -95,27 +95,30 @@ public class DecodingActivity
     private double dragStartingAngle;
     private double tagOrientationBeforeDrag;
 
-    private class ServerRequestTask extends AsyncTask<DecodingData, Void, List<Tag>> {
+    private class ServerRequestTask extends AsyncTask<DecodingData, Void, DecodingResult> {
         @Override
-        protected List<Tag> doInBackground(DecodingData... decodingData) {
+        protected DecodingResult doInBackground(DecodingData... decodingData) {
             DecodingData data = decodingData[0];
             BitmapFactory.Options options = new BitmapFactory.Options();
             Bitmap imageBitmap = BitmapFactory.decodeFile(new File(data.imageUri.getPath()).getAbsolutePath(), options);
             int imageWidth = options.outWidth;
             int imageHeight = options.outHeight;
-
+            PointF tagCenter = new PointF();
             switch (data.appliedOrientation) {
                 case 90:
                     // rotate tagCenter by 90 degrees, counter-clockwise
-                    data.tagCenter.set(data.tagCenter.y, imageHeight-data.tagCenter.x);
+                    tagCenter.set(data.tagCenter.y, imageHeight-data.tagCenter.x);
                     break;
                 case 180:
                     // rotate tagCenter by 180 degrees
-                    data.tagCenter.set(imageWidth-data.tagCenter.x, imageHeight-data.tagCenter.y);
+                    tagCenter.set(imageWidth-data.tagCenter.x, imageHeight-data.tagCenter.y);
                     break;
                 case 270:
                     // rotate tagCenter by 90 degrees, clockwise
-                    data.tagCenter.set(imageWidth-data.tagCenter.y, data.tagCenter.x);
+                    tagCenter.set(imageWidth-data.tagCenter.y, data.tagCenter.x);
+                    break;
+                default:
+                    tagCenter.set(data.tagCenter);
                     break;
             }
 
@@ -126,7 +129,7 @@ public class DecodingActivity
             rotationMatrix.postScale(tagScaleToTarget, tagScaleToTarget);
 
             // increase size of crop square by 30% on each side for padding
-            ImageSquare cropSquare = new ImageSquare(data.tagCenter, data.tagSizeInPx * 1.6f);
+            ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 1.6f);
             Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
             Bitmap croppedTag = Bitmap.createBitmap(
                     imageBitmap,
@@ -169,6 +172,7 @@ public class DecodingActivity
             BufferedInputStream in = null;
             HttpURLConnection connection = null;
             List<Tag> tags = new ArrayList<>();
+            int resultCode;
 
             try {
                 connection = (HttpURLConnection) data.serverUrl.openConnection();
@@ -224,8 +228,8 @@ public class DecodingActivity
                 int tagCount = Math.min(ids.size(), orientations.size());
                 for (int i = 0; i < tagCount; i++) {
                     Tag tag = new Tag();
-                    tag.setCenterX(data.tagCenter.x);
-                    tag.setCenterY(data.tagCenter.y);
+                    tag.setCenterX(tagCenter.x);
+                    tag.setCenterY(tagCenter.y);
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageUri.getLastPathSegment());
                     tag.setOrientation(orientations.get(i));
@@ -250,30 +254,31 @@ public class DecodingActivity
                     e.printStackTrace();
                 }
             }
-            return tags;
+            if (tags.isEmpty()) {
+                resultCode = DecodingResult.TAG_NOT_FOUND;
+            } else {
+                resultCode = DecodingResult.OK;
+            }
+            return new DecodingResult(data, tags, resultCode);
         }
 
         @Override
-        protected void onPostExecute(List<Tag> result) {
-            if (result.size() > 1) {
-                Toast.makeText(getApplicationContext(), "Found more than one tag!", Toast.LENGTH_LONG).show();
-                return;
-            } else if (result.isEmpty()) {
+        protected void onPostExecute(DecodingResult result) {
+            Tag resultTag;
+            if (result.resultCode == DecodingResult.TAG_NOT_FOUND) {
                 Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
-                Tag resultTag = new Tag();
+                resultTag = new Tag();
                 resultTag.setBeeId(0);
                 resultTag.setImageName(imageUri.getLastPathSegment());
-                PointF tagCenter = tagView.getCenter();
-                resultTag.setCenterX(tagCenter.x);
-                resultTag.setCenterY(tagCenter.y);
-                resultTag.setRadius(tagView.getTagCircleRadius() / tagView.getScale());
+                resultTag.setCenterX(result.input.tagCenter.x);
+                resultTag.setCenterY(result.input.tagCenter.y);
+                resultTag.setRadius(result.input.tagSizeInPx / 2);
                 resultTag.setOrientation(0);
                 resultTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
-                new DatabaseInsertTask().execute(resultTag);
-                return;
+            } else {
+                resultTag = result.decodedTags.get(0);
             }
-
-            new DatabaseInsertTask().execute(result.get(0));
+            new DatabaseInsertTask().execute(resultTag);
         }
     }
 
@@ -495,7 +500,6 @@ public class DecodingActivity
 
         tagView = findViewById(R.id.tag_view);
         tagView.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
-        tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
         tagView.setMinimumDpi(10);
         tagView.setDoubleTapZoomStyle(SubsamplingScaleImageView.ZOOM_FOCUS_CENTER);
 
@@ -649,6 +653,7 @@ public class DecodingActivity
                 if (tagView.isReady()) {
                     tagView.moveViewBack();
                 }
+                tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
                 break;
             case EDITING_MODE:
                 beeIdTextView.setText(String.format(
@@ -672,6 +677,7 @@ public class DecodingActivity
                 tagButton.setVisibility(View.INVISIBLE);
                 textInputDoneButton.setVisibility(View.INVISIBLE);
                 tagInfoLayout.setVisibility(View.VISIBLE);
+                tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_OUTSIDE);
                 if (tagView.isReady()) {
                     PointF tagCenterInView = new PointF(
                             tagView.getWidth() / 2,
