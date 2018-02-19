@@ -1,6 +1,8 @@
 package com.aki.beetag;
 
 import android.Manifest;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -13,12 +15,14 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
@@ -51,6 +55,9 @@ public class GalleryActivity extends AppCompatActivity {
     private boolean storageWritePermissionGranted;
     private boolean cameraPermissionGranted;
 
+    private TagDatabase database;
+    private TagDao dao;
+
     private File imageFolder;
     private File lastImageFile;
 
@@ -61,7 +68,7 @@ public class GalleryActivity extends AppCompatActivity {
         }
     };
 
-    // ImageAdapter gets images from folder and supplies GridView with ImageViews to display
+    // ImageAdapter gets images from folder and supplies GridView with Views to display
     private class ImageAdapter extends BaseAdapter {
 
         private Context context;
@@ -94,24 +101,28 @@ public class GalleryActivity extends AppCompatActivity {
 
         @Override
         public View getView(int position, View recycledView, ViewGroup parent) {
-            ImageView imageView;
+            View thumbnailView;
             if (recycledView == null) {
-                imageView = new ImageView(context);
+                LayoutInflater inflater =
+                        (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                thumbnailView = inflater.inflate(R.layout.layout_gallery_thumbnail, parent, false);
             } else {
-                imageView = (ImageView) recycledView;
+                thumbnailView = recycledView;
             }
-
-            String imageUri = imageFiles[position].toString();
-
-            int thumbnailSize = ((GridView) parent).getColumnWidth();
-            imageView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+            ImageView thumbnailImageView = thumbnailView.findViewById(R.id.imageview_gallery_thumbnail);
 
             Glide.with(context)
-                    .load(imageUri)
+                    .load(Uri.fromFile(imageFiles[position]).getPath())
                     .apply(centerCropTransform())
-                    .into(imageView);
+                    .into(thumbnailImageView);
 
-            return imageView;
+            TextView thumbnailTextView = thumbnailView.findViewById(R.id.textview_gallery_thumbnail_tagcount);
+            thumbnailTextView.setText(String.format(Locale.US, "%d", 1337));
+
+            int thumbnailSize = ((GridView) parent).getColumnWidth();
+            thumbnailView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+
+            return thumbnailView;
         }
 
         @Override
@@ -125,6 +136,12 @@ public class GalleryActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        RoomDatabase.Builder<TagDatabase> databaseBuilder = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database");
+        databaseBuilder.fallbackToDestructiveMigration();
+        database = databaseBuilder.build();
+        dao = database.getDao();
+
         setContentView(R.layout.activity_gallery);
 
         checkPermissions();
@@ -294,5 +311,21 @@ public class GalleryActivity extends AppCompatActivity {
             cameraPermissionGranted = true;
             storageWritePermissionGranted = true;
         }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (database != null) {
+            database.close();
+        }
+        dao = null;
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        database = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database").build();
+        dao = database.getDao();
     }
 }
