@@ -12,6 +12,6 @@
         android:id="@+id/textview_gallery_thumbnail_tagcount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="bottom|right" />
+        android:layout_gravity="bottom|end" />
 
 </FrameLayout>

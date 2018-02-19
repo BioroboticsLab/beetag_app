@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -15,6 +16,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,13 +36,9 @@ import org.joda.time.format.DateTimeFormatter;
 import static com.bumptech.glide.request.RequestOptions.centerCropTransform;
 
 import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Locale;
 
 
@@ -61,6 +59,8 @@ public class GalleryActivity extends AppCompatActivity {
     private File imageFolder;
     private File lastImageFile;
 
+    private ImageAdapter imageAdapter;
+
     private Comparator<File> reverseFileDateComparator = new Comparator<File>() {
         @Override
         public int compare(File l, File r) {
@@ -68,11 +68,39 @@ public class GalleryActivity extends AppCompatActivity {
         }
     };
 
+    private class GetTagCountsTask extends AsyncTask<File[], Void, Integer[]> {
+        @Override
+        protected Integer[] doInBackground(File[]... files) {
+            File[] imageFiles = files[0];
+            int fileCount = imageFiles.length;
+            Integer[] tagCounts = new Integer[fileCount];
+            for (int i = 0; i < fileCount; i++) {
+                String imageName = imageFiles[i].getName();
+                if (dao == null) {
+                    Log.e("debug", "dao is null!!!!!!!");
+                }
+                tagCounts[i] = dao.getTagCount(imageName);
+            }
+            return tagCounts;
+        }
+
+        @Override
+        protected void onPostExecute(Integer[] counts) {
+            int imageCount = counts.length;
+            int[] tagCounts = new int[imageCount];
+            for (int i = 0; i < imageCount; i++) {
+                tagCounts[i] = counts[i];
+            }
+            imageAdapter.updateTagCounts(tagCounts);
+        }
+    }
+
     // ImageAdapter gets images from folder and supplies GridView with Views to display
     private class ImageAdapter extends BaseAdapter {
 
         private Context context;
         private File[] imageFiles;
+        private int[] tagCounts;
 
         public ImageAdapter(Context c) {
             this.context = c;
@@ -111,13 +139,21 @@ public class GalleryActivity extends AppCompatActivity {
             }
             ImageView thumbnailImageView = thumbnailView.findViewById(R.id.imageview_gallery_thumbnail);
 
+            String imagePath = Uri.fromFile(imageFiles[position]).getPath();
             Glide.with(context)
-                    .load(Uri.fromFile(imageFiles[position]).getPath())
+                    .load(imagePath)
                     .apply(centerCropTransform())
                     .into(thumbnailImageView);
 
-            TextView thumbnailTextView = thumbnailView.findViewById(R.id.textview_gallery_thumbnail_tagcount);
-            thumbnailTextView.setText(String.format(Locale.US, "%d", 1337));
+            if (tagCounts != null) {
+                TextView thumbnailTextView = thumbnailView.findViewById(R.id.textview_gallery_thumbnail_tagcount);
+                if (tagCounts[position] != 0) {
+                    thumbnailTextView.setText(String.format(Locale.US, "%d", tagCounts[position]));
+                    thumbnailTextView.setVisibility(View.VISIBLE);
+                } else {
+                    thumbnailTextView.setVisibility(View.INVISIBLE);
+                }
+            }
 
             int thumbnailSize = ((GridView) parent).getColumnWidth();
             thumbnailView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
@@ -127,8 +163,16 @@ public class GalleryActivity extends AppCompatActivity {
 
         @Override
         public void notifyDataSetChanged() {
+            Log.d("debug", "notifyDataSetChanged() called");
             imageFiles = imageFolder.listFiles();
             Arrays.sort(imageFiles, reverseFileDateComparator);
+            imageAdapter.updateTagCounts(null);
+            new GetTagCountsTask().execute(imageFiles);
+            super.notifyDataSetChanged();
+        }
+
+        public void updateTagCounts(int[] tagCounts) {
+            this.tagCounts = tagCounts;
             super.notifyDataSetChanged();
         }
     }
@@ -166,7 +210,8 @@ public class GalleryActivity extends AppCompatActivity {
     private void setupImageGrid() {
         createImageFolder();
         imageGridView = findViewById(R.id.gridview_gallery);
-        imageGridView.setAdapter(new ImageAdapter(this));
+        imageAdapter = new ImageAdapter(this);
+        imageGridView.setAdapter(imageAdapter);
         imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -177,6 +222,7 @@ public class GalleryActivity extends AppCompatActivity {
                 startActivity(displayImageIntent);
             }
         });
+        new GetTagCountsTask().execute(imageFolder.listFiles());
     }
 
     private void dispatchCaptureIntent() {
@@ -313,6 +359,7 @@ public class GalleryActivity extends AppCompatActivity {
         }
     }
 
+    /*
     @Override
     protected void onStop() {
         super.onStop();
@@ -328,4 +375,5 @@ public class GalleryActivity extends AppCompatActivity {
         database = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database").build();
         dao = database.getDao();
     }
+    */
 }

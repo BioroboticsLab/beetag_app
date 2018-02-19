@@ -21,4 +21,7 @@ public interface TagDao {
 
     @Query("SELECT * FROM tag WHERE imageName=:imageName")
     List<Tag> loadTagsByImage(String imageName);
+
+    @Query("SELECT COUNT(*) FROM TAG WHERE imageName=:imageName")
+    int getTagCount(String imageName);
 }
