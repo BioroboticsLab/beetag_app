@@ -16,7 +16,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -76,9 +75,6 @@ public class GalleryActivity extends AppCompatActivity {
             Integer[] tagCounts = new Integer[fileCount];
             for (int i = 0; i < fileCount; i++) {
                 String imageName = imageFiles[i].getName();
-                if (dao == null) {
-                    Log.e("debug", "dao is null!!!!!!!");
-                }
                 tagCounts[i] = dao.getTagCount(imageName);
             }
             return tagCounts;
@@ -121,7 +117,6 @@ public class GalleryActivity extends AppCompatActivity {
                 return imageFiles[position];
             }
         }
-
         @Override
         public long getItemId(int i) {
             return 0;
@@ -137,7 +132,16 @@ public class GalleryActivity extends AppCompatActivity {
             } else {
                 thumbnailView = recycledView;
             }
+
+            int thumbnailSize = ((GridView) parent).getColumnWidth();
+            thumbnailView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
+
             ImageView thumbnailImageView = thumbnailView.findViewById(R.id.imageview_gallery_thumbnail);
+            thumbnailImageView.getLayoutParams().width = thumbnailSize;
+            thumbnailImageView.getLayoutParams().height = thumbnailSize;
+            if (!thumbnailImageView.isInLayout()) {
+                thumbnailImageView.requestLayout();
+            }
 
             String imagePath = Uri.fromFile(imageFiles[position]).getPath();
             Glide.with(context)
@@ -155,15 +159,11 @@ public class GalleryActivity extends AppCompatActivity {
                 }
             }
 
-            int thumbnailSize = ((GridView) parent).getColumnWidth();
-            thumbnailView.setLayoutParams(new GridView.LayoutParams(thumbnailSize, thumbnailSize));
-
             return thumbnailView;
         }
 
         @Override
         public void notifyDataSetChanged() {
-            Log.d("debug", "notifyDataSetChanged() called");
             imageFiles = imageFolder.listFiles();
             Arrays.sort(imageFiles, reverseFileDateComparator);
             imageAdapter.updateTagCounts(null);
@@ -359,7 +359,6 @@ public class GalleryActivity extends AppCompatActivity {
         }
     }
 
-    /*
     @Override
     protected void onStop() {
         super.onStop();
@@ -375,5 +374,4 @@ public class GalleryActivity extends AppCompatActivity {
         database = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database").build();
         dao = database.getDao();
     }
-    */
 }
