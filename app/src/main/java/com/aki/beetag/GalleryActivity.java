@@ -16,6 +16,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -242,12 +243,9 @@ public class GalleryActivity extends AppCompatActivity {
                 if (resultCode == RESULT_OK) {
                     // rename image file so that timestamp is correct
                     DateTime lastModified = new DateTime(lastImageFile.lastModified());
-                    if (lastImageFile.renameTo(createImageFile(lastModified))) {
-                        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
-                    } else {
+                    if (!lastImageFile.renameTo(createImageFile(lastModified))) {
                         Toast.makeText(this, "Renaming failed, timestamp of image " +
                                 "in 'Beetags' folder may be wrong.", Toast.LENGTH_LONG).show();
-                        ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
                     }
                 }
                 break;
