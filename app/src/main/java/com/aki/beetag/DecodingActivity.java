@@ -129,7 +129,7 @@ public class DecodingActivity
             rotationMatrix.postScale(tagScaleToTarget, tagScaleToTarget);
 
             // increase size of crop square by 30% on each side for padding
-            ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 1.6f);
+            ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 2f);
             Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
             Bitmap croppedTag = Bitmap.createBitmap(
                     imageBitmap,
@@ -228,8 +228,8 @@ public class DecodingActivity
                 int tagCount = Math.min(ids.size(), orientations.size());
                 for (int i = 0; i < tagCount; i++) {
                     Tag tag = new Tag();
-                    tag.setCenterX(tagCenter.x);
-                    tag.setCenterY(tagCenter.y);
+                    tag.setCenterX(data.tagCenter.x);
+                    tag.setCenterY(data.tagCenter.y);
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageUri.getLastPathSegment());
                     tag.setOrientation(orientations.get(i));
@@ -699,7 +699,7 @@ public class DecodingActivity
 
     private URL buildUrl() throws JSONException, MalformedURLException {
         // TODO: use Uri.Builder for this
-        String address = "http://662a6528.ngrok.io/process";
+        String address = "http://5631f922.ngrok.io/decode/single";
 
         JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
         HashMap<String, String> params = new HashMap<>();
