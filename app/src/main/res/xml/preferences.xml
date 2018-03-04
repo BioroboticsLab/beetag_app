@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory
+        android:title="Decoding server">
+        <SwitchPreference
+            android:key="pref_decoding_server_connection"
+            android:title="Automatic server decoding of tags"
+            android:defaultValue="true">
+        </SwitchPreference>
 
-    <CheckBoxPreference
-        android:key="pref_decoding_server_connection"
-        android:title="Enable automatic server decoding of tags"
-        android:defaultValue="true">
-    </CheckBoxPreference>
-
-    <EditTextPreference
-        android:key="pref_decoding_server_url"
-        android:title="Decoding server URL"
-        android:hint="http://www.example.com/decode">
-    </EditTextPreference>
-
+        <EditTextPreference
+            android:key="pref_decoding_server_url"
+            android:title="Decoding server URL"
+            android:summary="http://this.is.the/summary"
+            android:hint="http://www.example.com/decode">
+        </EditTextPreference>
+    </PreferenceCategory>
 </PreferenceScreen>

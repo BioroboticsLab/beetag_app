@@ -24,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -188,6 +189,7 @@ public class GalleryActivity extends AppCompatActivity {
         dao = database.getDao();
 
         setContentView(R.layout.activity_gallery);
+        RelativeLayout galleryLayout = findViewById(R.id.relativelayout_gallery);
 
         checkPermissions();
 
@@ -206,6 +208,11 @@ public class GalleryActivity extends AppCompatActivity {
                 dispatchCaptureIntent();
             }
         });
+
+        galleryLayout.setVisibility(View.INVISIBLE);
+        getFragmentManager().beginTransaction()
+                .replace(android.R.id.content, new SettingsFragment())
+                .commit();
     }
 
     private void setupImageGrid() {
