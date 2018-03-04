@@ -3,15 +3,14 @@
     <PreferenceCategory
         android:title="Decoding server">
         <SwitchPreference
-            android:key="pref_decoding_server_connection"
-            android:title="Automatic server decoding of tags"
+            android:key="pref_online_decoding_enabled"
+            android:title="Online decoding of tags"
             android:defaultValue="true">
         </SwitchPreference>
 
         <EditTextPreference
             android:key="pref_decoding_server_url"
             android:title="Decoding server URL"
-            android:summary="http://this.is.the/summary"
             android:hint="http://www.example.com/decode">
         </EditTextPreference>
     </PreferenceCategory>

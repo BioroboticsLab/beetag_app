@@ -1,6 +1,8 @@
 package com.aki.beetag;
 
 import android.Manifest;
+import android.app.FragmentManager;
+import android.app.FragmentTransaction;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
@@ -11,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -23,6 +26,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -49,6 +53,7 @@ public class GalleryActivity extends AppCompatActivity {
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
     private FloatingActionButton cameraButton;
+    private ImageButton settingsButton;
     private GridView imageGridView;
 
     private boolean storageWritePermissionGranted;
@@ -188,8 +193,9 @@ public class GalleryActivity extends AppCompatActivity {
         database = databaseBuilder.build();
         dao = database.getDao();
 
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
         setContentView(R.layout.activity_gallery);
-        RelativeLayout galleryLayout = findViewById(R.id.relativelayout_gallery);
 
         checkPermissions();
 
@@ -209,10 +215,16 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
-        galleryLayout.setVisibility(View.INVISIBLE);
-        getFragmentManager().beginTransaction()
-                .replace(android.R.id.content, new SettingsFragment())
-                .commit();
+        settingsButton = findViewById(R.id.button_settings);
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getFragmentManager().beginTransaction()
+                        .replace(android.R.id.content, new SettingsFragment())
+                        .addToBackStack("settings")
+                        .commit();
+            }
+        });
     }
 
     private void setupImageGrid() {
