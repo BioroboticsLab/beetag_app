@@ -8,6 +8,7 @@ import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
@@ -17,6 +18,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.text.format.DateFormat;
 import android.util.Log;
@@ -91,6 +93,8 @@ public class DecodingActivity
 
     private TagDatabase database = null;
     private TagDao dao;
+
+    private SharedPreferences sharedPreferences;
 
     private Tag currentlyEditedTag;
     private double dragStartingAngle;
@@ -360,6 +364,8 @@ public class DecodingActivity
         databaseBuilder.fallbackToDestructiveMigration();
         database = databaseBuilder.build();
         dao = database.getDao();
+
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         tagInfoLayout = findViewById(R.id.relativelayout_tag_info);
         tagInfoScrollView = findViewById(R.id.scrollview_tag_info);
@@ -712,12 +718,11 @@ public class DecodingActivity
 
     private URL buildUrl() throws JSONException, MalformedURLException {
         // TODO: use Uri.Builder for this
-        String address = "http://5631f922.ngrok.io/decode/single";
+        String address = sharedPreferences.getString("pref_decoding_server_url", "");
 
         JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
         HashMap<String, String> params = new HashMap<>();
         params.put("output", output.toString());
-
         return new URL(address + buildUrlParamsString(params));
     }
 
