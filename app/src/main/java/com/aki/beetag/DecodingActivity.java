@@ -19,6 +19,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -285,6 +286,9 @@ public class DecodingActivity
     private class GetTagsTask extends AsyncTask<Uri, Void, List<Tag>> {
         @Override
         protected List<Tag> doInBackground(Uri... uris) {
+            if (dao == null || database == null) {
+                cancel(true);
+            }
             return dao.loadTagsByImage(uris[0].getLastPathSegment());
         }
 
@@ -297,6 +301,9 @@ public class DecodingActivity
     private class DatabaseInsertTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
+            if (dao == null || database == null) {
+                cancel(true);
+            }
             dao.insertTags(tags[0]);
             return null;
         }
@@ -310,6 +317,9 @@ public class DecodingActivity
     private class DatabaseDeleteTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
+            if (dao == null || database == null) {
+                cancel(true);
+            }
             dao.deleteTags(tags[0]);
             return null;
         }
@@ -323,6 +333,9 @@ public class DecodingActivity
     private class DatabaseUpdateTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
+            if (dao == null || database == null) {
+                cancel(true);
+            }
             dao.updateTags(tags[0]);
             return null;
         }

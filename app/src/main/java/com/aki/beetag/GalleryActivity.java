@@ -85,8 +85,6 @@ public class GalleryActivity extends AppCompatActivity {
                 String imageName = imageFiles[i].getName();
                 if (dao == null || database == null) {
                     cancel(true);
-                } else if (!database.isOpen()) {
-                    cancel(true);
                 }
                 tagCounts[i] = dao.getTagCount(imageName);
             }
