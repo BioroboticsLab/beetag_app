@@ -133,7 +133,6 @@ public class DecodingActivity
             float tagScaleToTarget = tagSizeTargetInPx / data.tagSizeInPx;
             rotationMatrix.postScale(tagScaleToTarget, tagScaleToTarget);
 
-            // increase size of crop square by 30% on each side for padding
             ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 2f);
             Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
             Bitmap croppedTag = Bitmap.createBitmap(
@@ -269,21 +268,14 @@ public class DecodingActivity
 
         @Override
         protected void onPostExecute(DecodingResult result) {
-            Tag resultTag;
             if (result.resultCode == DecodingResult.TAG_NOT_FOUND) {
                 Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
-                resultTag = new Tag();
-                resultTag.setBeeId(0);
-                resultTag.setImageName(imageUri.getLastPathSegment());
-                resultTag.setCenterX(result.input.tagCenter.x);
-                resultTag.setCenterY(result.input.tagCenter.y);
-                resultTag.setRadius(result.input.tagSizeInPx / 2);
-                resultTag.setOrientation(0);
-                resultTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
+                insertDummyTag(
+                        new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                        result.input.tagSizeInPx / 2);
             } else {
-                resultTag = result.decodedTags.get(0);
+                new DatabaseInsertTask().execute(result.decodedTags.get(0));
             }
-            new DatabaseInsertTask().execute(resultTag);
         }
     }
 
@@ -349,6 +341,18 @@ public class DecodingActivity
             Toast.makeText(getApplicationContext(), "Tag saved.", Toast.LENGTH_SHORT).show();
             new GetTagsTask().execute(imageUri);
         }
+    }
+
+    private void insertDummyTag(PointF position, float radius) {
+        Tag dummyTag = new Tag();
+        dummyTag.setBeeId(0);
+        dummyTag.setImageName(imageUri.getLastPathSegment());
+        dummyTag.setCenterX(position.x);
+        dummyTag.setCenterY(position.y);
+        dummyTag.setRadius(radius);
+        dummyTag.setOrientation(0);
+        dummyTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
+        new DatabaseInsertTask().execute(dummyTag);
     }
 
     @Override
@@ -429,25 +433,28 @@ public class DecodingActivity
                     return;
                 }
 
-                URL serverUrl = null;
-                try {
-                    serverUrl = buildUrl();
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
                 PointF tagCenter = tagView.getCenter();
                 float tagSizeInPx = (tagView.getTagCircleRadius() * 2) / tagView.getScale();
                 int appliedOrientation = tagView.getAppliedOrientation();
 
-                DecodingData tagData = new DecodingData(
-                        serverUrl,
-                        imageUri,
-                        tagCenter,
-                        tagSizeInPx,
-                        appliedOrientation);
-                new ServerRequestTask().execute(tagData);
+                if (sharedPreferences.getBoolean("pref_online_decoding_enabled", false)) {
+                    try {
+                        URL serverUrl;
+                        serverUrl = buildUrl();
+                        DecodingData tagData = new DecodingData(
+                                serverUrl,
+                                imageUri,
+                                tagCenter,
+                                tagSizeInPx,
+                                appliedOrientation);
+                        new ServerRequestTask().execute(tagData);
+                    } catch (JSONException | MalformedURLException e) {
+                        Toast.makeText(getApplicationContext(), "Invalid server URL", Toast.LENGTH_SHORT).show();
+                        insertDummyTag(tagCenter, tagSizeInPx / 2);
+                    }
+                } else {
+                    insertDummyTag(tagCenter, tagSizeInPx / 2);
+                }
             }
         });
 
