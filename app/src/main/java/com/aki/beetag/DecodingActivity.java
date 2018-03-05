@@ -733,11 +733,11 @@ public class DecodingActivity
 
     @Override
     protected void onStop() {
-        super.onStop();
         if (database != null) {
             database.close();
         }
         dao = null;
+        super.onStop();
     }
 
     @Override

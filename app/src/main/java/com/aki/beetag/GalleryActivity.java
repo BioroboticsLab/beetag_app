@@ -7,6 +7,7 @@ import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -82,6 +83,11 @@ public class GalleryActivity extends AppCompatActivity {
             Integer[] tagCounts = new Integer[fileCount];
             for (int i = 0; i < fileCount; i++) {
                 String imageName = imageFiles[i].getName();
+                if (dao == null || database == null) {
+                    cancel(true);
+                } else if (!database.isOpen()) {
+                    cancel(true);
+                }
                 tagCounts[i] = dao.getTagCount(imageName);
             }
             return tagCounts;
@@ -378,11 +384,11 @@ public class GalleryActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-        super.onStop();
         if (database != null) {
             database.close();
         }
         dao = null;
+        super.onStop();
     }
 
     @Override
