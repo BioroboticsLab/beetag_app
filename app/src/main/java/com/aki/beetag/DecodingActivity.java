@@ -43,11 +43,13 @@ import org.joda.time.MutableDateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.msgpack.core.MessagePack;
+import org.msgpack.core.MessageTypeException;
 import org.msgpack.core.MessageUnpacker;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -55,6 +57,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -241,21 +244,23 @@ public class DecodingActivity
                     tag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
                     tags.add(tag);
                 }
+            } catch (UnknownHostException e) {
+                resultCode = DecodingResult.UNKNOWN_HOST;
+                return new DecodingResult(data, tags, resultCode);
             } catch (IOException e) {
-                e.printStackTrace();
+                resultCode = DecodingResult.COMMUNICATION_FAILED;
+                return new DecodingResult(data, tags, resultCode);
+            } catch (MessageTypeException e) {
+                resultCode = DecodingResult.UNEXPECTED_RESPONSE;
+                return new DecodingResult(data, tags, resultCode);
+            } catch (Exception e) {
+                resultCode = DecodingResult.UNKNOWN_ERROR;
+                return new DecodingResult(data, tags, resultCode);
             } finally {
-                try {
-                    if (out != null) {
-                        out.close();
-                    }
-                    if (in != null) {
-                        in.close();
-                    }
-                    if (connection != null) {
-                        connection.disconnect();
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
+                closeWithoutIOException(out);
+                closeWithoutIOException(in);
+                if (connection != null) {
+                    connection.disconnect();
                 }
             }
             if (tags.isEmpty()) {
@@ -266,15 +271,69 @@ public class DecodingActivity
             return new DecodingResult(data, tags, resultCode);
         }
 
+        // helper method to avoid nested try-catch-blocks
+        private void closeWithoutIOException(Closeable c) {
+            try {
+                if (c != null) {
+                    c.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         @Override
         protected void onPostExecute(DecodingResult result) {
-            if (result.resultCode == DecodingResult.TAG_NOT_FOUND) {
-                Toast.makeText(getApplicationContext(), "No tag found :(", Toast.LENGTH_LONG).show();
-                insertDummyTag(
-                        new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
-                        result.input.tagSizeInPx / 2);
-            } else {
-                new DatabaseInsertTask().execute(result.decodedTags.get(0));
+            switch (result.resultCode) {
+                case DecodingResult.OK:
+                    new DatabaseInsertTask().execute(result.decodedTags.get(0));
+                    break;
+                case DecodingResult.TAG_NOT_FOUND:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "No tag found",
+                            Toast.LENGTH_LONG).show();
+                    insertDummyTag(
+                            new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                            result.input.tagSizeInPx / 2);
+                    break;
+                case DecodingResult.COMMUNICATION_FAILED:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "Server communication failed",
+                            Toast.LENGTH_LONG).show();
+                    insertDummyTag(
+                            new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                            result.input.tagSizeInPx / 2);
+                    break;
+                case DecodingResult.UNKNOWN_HOST:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "Could not resolve server address",
+                            Toast.LENGTH_LONG).show();
+                    insertDummyTag(
+                            new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                            result.input.tagSizeInPx / 2);
+                    break;
+                case DecodingResult.UNEXPECTED_RESPONSE:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "Unexpected response from server",
+                            Toast.LENGTH_LONG).show();
+                    insertDummyTag(
+                            new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                            result.input.tagSizeInPx / 2);
+                    break;
+                case DecodingResult.UNKNOWN_ERROR:
+                default:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "Something went wrong :O",
+                            Toast.LENGTH_LONG).show();
+                    insertDummyTag(
+                            new PointF(result.input.tagCenter.x, result.input.tagCenter.y),
+                            result.input.tagSizeInPx / 2);
+                    break;
             }
         }
     }
