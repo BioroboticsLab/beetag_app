@@ -159,16 +159,24 @@ public class DecodingActivity
             int cutoutHeight = croppedTag.getHeight();
 
             // single channel (grayscale, no alpha) PNG, 8 bit, not indexed
-            ImageInfo imgInfo = new ImageInfo(cutoutWidth, cutoutHeight, 8, false, true, false);
+            ImageInfo imgInfo = new ImageInfo(100, 100, 8, false, true, false);
             PngWriter pngWriter = new PngWriter(pngStream, imgInfo);
-            int[] grayLine = new int[cutoutWidth];
-            for (int y = 0; y < cutoutHeight; y++) {
+            // cropped image size must always be 100x100
+            int[] grayLine = new int[100];
+            for (int y = 0; y < 100; y++) {
                 // write PNG line by line
-                for (int x = 0; x < cutoutWidth; x++) {
-                    int pixel = croppedTag.getPixel(x, y);
-                    int grayValue = (int) (0.2125 * ((pixel >> 16) & 0xff));
-                    grayValue += (int) (0.7154 * ((pixel >> 8) & 0xff));
-                    grayValue += (int) (0.0721 * (pixel & 0xff));
+                for (int x = 0; x < 100; x++) {
+                    int grayValue;
+                    // leave out pixels or add padding if image size is not 100x100
+                    if (x < cutoutWidth && y < cutoutHeight) {
+                        int pixel = croppedTag.getPixel(x, y);
+                        // convert pixel to grayscale
+                        grayValue = (int) (0.2125 * ((pixel >> 16) & 0xff));
+                        grayValue += (int) (0.7154 * ((pixel >> 8) & 0xff));
+                        grayValue += (int) (0.0721 * (pixel & 0xff));
+                    } else {
+                        grayValue = 0;
+                    }
                     grayLine[x] = grayValue;
                 }
                 pngWriter.writeRowInt(grayLine);
