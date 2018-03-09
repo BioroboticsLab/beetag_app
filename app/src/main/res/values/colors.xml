@@ -7,6 +7,7 @@
     <color name="colorDelete">#dc322f</color>
     <color name="colorSave">#859900</color>
     <color name="colorText">#586e75</color>
+    <color name="colorSelectionOverlay">#b40e758f</color>
 
     <color name="black_overlay">#66000000</color>
 </resources>

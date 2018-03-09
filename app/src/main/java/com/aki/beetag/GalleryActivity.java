@@ -45,7 +45,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Locale;
+import java.util.Set;
 
 
 public class GalleryActivity extends AppCompatActivity {
@@ -54,6 +56,7 @@ public class GalleryActivity extends AppCompatActivity {
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
     private FloatingActionButton cameraButton;
+    private ImageButton cancelSelectionButton;
     private ImageButton settingsButton;
     private GridView imageGridView;
 
@@ -64,7 +67,14 @@ public class GalleryActivity extends AppCompatActivity {
     private TagDao dao;
 
     private File imageFolder;
+    private File[] imageFiles;
+    private HashSet<Integer> imagesSelectedIndices;
     private File lastImageFile;
+
+    private enum UserMode {
+        STANDARD_MODE, SELECTION_MODE
+    }
+    private UserMode userMode;
 
     private ImageAdapter imageAdapter;
 
@@ -106,12 +116,12 @@ public class GalleryActivity extends AppCompatActivity {
     private class ImageAdapter extends BaseAdapter {
 
         private Context context;
-        private File[] imageFiles;
         private int[] tagCounts;
 
         public ImageAdapter(Context c) {
             this.context = c;
             imageFiles = imageFolder.listFiles();
+            imagesSelectedIndices = new HashSet<>();
             Arrays.sort(imageFiles, reverseFileDateComparator);
         }
 
@@ -159,6 +169,13 @@ public class GalleryActivity extends AppCompatActivity {
                     .load(imagePath)
                     .apply(centerCropTransform())
                     .into(thumbnailImageView);
+
+            View thumbnailSelectionOverlay = thumbnailView.findViewById(R.id.view_gallery_thumbnail_selection_overlay);
+            if (userMode == UserMode.SELECTION_MODE && imagesSelectedIndices.contains(position)) {
+                thumbnailSelectionOverlay.setVisibility(View.VISIBLE);
+            } else {
+                thumbnailSelectionOverlay.setVisibility(View.INVISIBLE);
+            }
 
             if (tagCounts != null) {
                 TextView thumbnailTextView = thumbnailView.findViewById(R.id.textview_gallery_thumbnail_tagcount);
@@ -219,6 +236,18 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
+        cancelSelectionButton = findViewById(R.id.button_selection_cancel);
+        cancelSelectionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if ((!storageWritePermissionGranted) || (!cameraPermissionGranted)) {
+                    checkPermissions();
+                    return;
+                }
+                setUserMode(UserMode.STANDARD_MODE);
+            }
+        });
+
         settingsButton = findViewById(R.id.button_settings);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -229,6 +258,8 @@ public class GalleryActivity extends AppCompatActivity {
                         .commit();
             }
         });
+
+        setUserMode(UserMode.STANDARD_MODE);
     }
 
     private void setupImageGrid() {
@@ -239,11 +270,33 @@ public class GalleryActivity extends AppCompatActivity {
         imageGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                File clickedImage = (File) parent.getItemAtPosition(position);
-                Intent displayImageIntent = new Intent(getApplicationContext(), DecodingActivity.class);
-                displayImageIntent.setData(Uri.fromFile(clickedImage));
-                displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
-                startActivity(displayImageIntent);
+                if (userMode == UserMode.STANDARD_MODE) {
+                    File clickedImage = (File) parent.getItemAtPosition(position);
+                    Intent displayImageIntent = new Intent(getApplicationContext(), DecodingActivity.class);
+                    displayImageIntent.setData(Uri.fromFile(clickedImage));
+                    displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
+                    startActivity(displayImageIntent);
+                } else if (userMode == UserMode.SELECTION_MODE) {
+                    if (imagesSelectedIndices.contains(position)) {
+                        imagesSelectedIndices.remove(position);
+                        imageGridView.invalidateViews();
+                    } else {
+                        imagesSelectedIndices.add(position);
+                        imageGridView.invalidateViews();
+                    }
+                }
+            }
+        });
+        imageGridView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
+                if (userMode == UserMode.STANDARD_MODE) {
+                    imagesSelectedIndices.add(position);
+                    setUserMode(UserMode.SELECTION_MODE);
+                    return true;
+                } else {
+                    return false;
+                }
             }
         });
         new GetTagCountsTask().execute(imageFolder.listFiles());
@@ -318,6 +371,24 @@ public class GalleryActivity extends AppCompatActivity {
                          }
                      }
                 }
+                break;
+        }
+    }
+
+    // sets the user mode and changes UI accordingly
+    private void setUserMode(UserMode userMode) {
+        this.userMode = userMode;
+        switch (userMode) {
+            case STANDARD_MODE:
+                Toast.makeText(getApplicationContext(), "Switched to STANDARD_MODE", Toast.LENGTH_SHORT).show();
+                imagesSelectedIndices.clear();
+                imageGridView.invalidateViews();
+                cancelSelectionButton.setVisibility(View.INVISIBLE);
+                break;
+            case SELECTION_MODE:
+                Toast.makeText(getApplicationContext(), "Switched to SELECTION_MODE", Toast.LENGTH_SHORT).show();
+                imageGridView.invalidateViews();
+                cancelSelectionButton.setVisibility(View.VISIBLE);
                 break;
         }
     }

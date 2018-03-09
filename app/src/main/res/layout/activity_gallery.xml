@@ -17,10 +17,19 @@
         android:elevation="8dp">
 
         <ImageButton
+            android:id="@+id/button_selection_cancel"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="14dp"
+            android:background="@android:drawable/ic_menu_close_clear_cancel" />
+
+        <ImageButton
             android:id="@+id/button_settings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:layout_marginEnd="14dp"
             android:background="@android:drawable/ic_menu_preferences" />
@@ -42,7 +51,6 @@
             android:layout_height="match_parent"
             android:layout_alignParentStart="true"
             android:layout_alignParentTop="true"
-            android:background="@color/colorPrimary"
             android:gravity="center"
             android:horizontalSpacing="3dp"
             android:numColumns="3"
