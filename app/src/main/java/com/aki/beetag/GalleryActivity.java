@@ -1,13 +1,10 @@
 package com.aki.beetag;
 
 import android.Manifest;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -20,7 +17,6 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,7 +25,6 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -45,9 +40,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
 
 
 public class GalleryActivity extends AppCompatActivity {
@@ -57,6 +50,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     private FloatingActionButton cameraButton;
     private ImageButton cancelSelectionButton;
+    private ImageButton deleteImagesWithTagsButton;
     private ImageButton settingsButton;
     private GridView imageGridView;
 
@@ -68,7 +62,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     private File imageFolder;
     private File[] imageFiles;
-    private HashSet<Integer> imagesSelectedIndices;
+    private ArrayList<File> selectedImageFiles;
     private File lastImageFile;
 
     private enum UserMode {
@@ -112,6 +106,47 @@ public class GalleryActivity extends AppCompatActivity {
         }
     }
 
+    private class DeleteTagsOnImagesTask extends AsyncTask<File[], Void, File[]> {
+        @Override
+        protected File[] doInBackground(File[]... files) {
+            File[] images = files[0];
+            for (File f : images) {
+                if (dao == null || database == null) {
+                    cancel(true);
+                }
+                dao.deleteAllTagsOnImage(f.getName());
+            }
+            return images;
+        }
+
+        @Override
+        protected void onPostExecute(File[] files) {
+            boolean fileDeletionSuccess = true;
+            for (File f : files) {
+                if (!f.delete()) {
+                    fileDeletionSuccess = false;
+                }
+            }
+            if (imageAdapter != null) {
+                imageAdapter.notifyDataSetChanged();
+            }
+            setUserMode(UserMode.STANDARD_MODE);
+
+            if (fileDeletionSuccess) {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Images and tags deleted.",
+                        Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Tags have been deleted, but something went wrong while "
+                                + "deleting the image files. Please delete these yourself.",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     // ImageAdapter gets images from folder and supplies GridView with Views to display
     private class ImageAdapter extends BaseAdapter {
 
@@ -121,7 +156,7 @@ public class GalleryActivity extends AppCompatActivity {
         public ImageAdapter(Context c) {
             this.context = c;
             imageFiles = imageFolder.listFiles();
-            imagesSelectedIndices = new HashSet<>();
+            selectedImageFiles = new ArrayList<>();
             Arrays.sort(imageFiles, reverseFileDateComparator);
         }
 
@@ -171,7 +206,7 @@ public class GalleryActivity extends AppCompatActivity {
                     .into(thumbnailImageView);
 
             View thumbnailSelectionOverlay = thumbnailView.findViewById(R.id.view_gallery_thumbnail_selection_overlay);
-            if (userMode == UserMode.SELECTION_MODE && imagesSelectedIndices.contains(position)) {
+            if (userMode == UserMode.SELECTION_MODE && selectedImageFiles.contains(imageFiles[position])) {
                 thumbnailSelectionOverlay.setVisibility(View.VISIBLE);
             } else {
                 thumbnailSelectionOverlay.setVisibility(View.INVISIBLE);
@@ -194,7 +229,6 @@ public class GalleryActivity extends AppCompatActivity {
         public void notifyDataSetChanged() {
             imageFiles = imageFolder.listFiles();
             Arrays.sort(imageFiles, reverseFileDateComparator);
-            imageAdapter.updateTagCounts(null);
             new GetTagCountsTask().execute(imageFiles);
             super.notifyDataSetChanged();
         }
@@ -248,10 +282,30 @@ public class GalleryActivity extends AppCompatActivity {
             }
         });
 
+        deleteImagesWithTagsButton = findViewById(R.id.button_delete_images_with_tags);
+        deleteImagesWithTagsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if ((!storageWritePermissionGranted) || (!cameraPermissionGranted)) {
+                    checkPermissions();
+                    return;
+                }
+                if (userMode != UserMode.SELECTION_MODE) {
+                    return;
+                }
+
+                new DeleteTagsOnImagesTask().execute(selectedImageFiles.toArray(new File[selectedImageFiles.size()]));
+            }
+        });
+
         settingsButton = findViewById(R.id.button_settings);
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (userMode != UserMode.STANDARD_MODE) {
+                    return;
+                }
+
                 getFragmentManager().beginTransaction()
                         .replace(android.R.id.content, new SettingsFragment())
                         .addToBackStack("settings")
@@ -277,11 +331,11 @@ public class GalleryActivity extends AppCompatActivity {
                     displayImageIntent.putExtra("imageFolder", Uri.fromFile(imageFolder));
                     startActivity(displayImageIntent);
                 } else if (userMode == UserMode.SELECTION_MODE) {
-                    if (imagesSelectedIndices.contains(position)) {
-                        imagesSelectedIndices.remove(position);
+                    if (selectedImageFiles.contains(imageFiles[position])) {
+                        selectedImageFiles.remove(imageFiles[position]);
                         imageGridView.invalidateViews();
                     } else {
-                        imagesSelectedIndices.add(position);
+                        selectedImageFiles.add(imageFiles[position]);
                         imageGridView.invalidateViews();
                     }
                 }
@@ -291,7 +345,7 @@ public class GalleryActivity extends AppCompatActivity {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
                 if (userMode == UserMode.STANDARD_MODE) {
-                    imagesSelectedIndices.add(position);
+                    selectedImageFiles.add(imageFiles[position]);
                     setUserMode(UserMode.SELECTION_MODE);
                     return true;
                 } else {
@@ -331,8 +385,8 @@ public class GalleryActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (imageGridView != null) {
-            ((ImageAdapter) imageGridView.getAdapter()).notifyDataSetChanged();
+        if (imageAdapter != null) {
+            imageAdapter.notifyDataSetChanged();
         }
     }
 
@@ -380,15 +434,17 @@ public class GalleryActivity extends AppCompatActivity {
         this.userMode = userMode;
         switch (userMode) {
             case STANDARD_MODE:
-                Toast.makeText(getApplicationContext(), "Switched to STANDARD_MODE", Toast.LENGTH_SHORT).show();
-                imagesSelectedIndices.clear();
-                imageGridView.invalidateViews();
+                selectedImageFiles.clear();
                 cancelSelectionButton.setVisibility(View.INVISIBLE);
+                settingsButton.setVisibility(View.VISIBLE);
+                deleteImagesWithTagsButton.setVisibility(View.INVISIBLE);
+                imageGridView.invalidateViews();
                 break;
             case SELECTION_MODE:
-                Toast.makeText(getApplicationContext(), "Switched to SELECTION_MODE", Toast.LENGTH_SHORT).show();
-                imageGridView.invalidateViews();
                 cancelSelectionButton.setVisibility(View.VISIBLE);
+                settingsButton.setVisibility(View.INVISIBLE);
+                deleteImagesWithTagsButton.setVisibility(View.VISIBLE);
+                imageGridView.invalidateViews();
                 break;
         }
     }

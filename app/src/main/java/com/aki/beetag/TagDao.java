@@ -19,6 +19,9 @@ public interface TagDao {
     @Delete
     void deleteTags(Tag... tags);
 
+    @Query("DELETE FROM tag WHERE imageName=:imageName")
+    void deleteAllTagsOnImage(String imageName);
+
     @Query("SELECT * FROM tag WHERE imageName=:imageName")
     List<Tag> loadTagsByImage(String imageName);
 
