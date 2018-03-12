@@ -434,17 +434,23 @@ public class GalleryActivity extends AppCompatActivity {
         this.userMode = userMode;
         switch (userMode) {
             case STANDARD_MODE:
-                selectedImageFiles.clear();
+                if (selectedImageFiles != null) {
+                    selectedImageFiles.clear();
+                }
                 cancelSelectionButton.setVisibility(View.INVISIBLE);
                 settingsButton.setVisibility(View.VISIBLE);
                 deleteImagesWithTagsButton.setVisibility(View.INVISIBLE);
-                imageGridView.invalidateViews();
+                if (imageGridView != null) {
+                    imageGridView.invalidateViews();
+                }
                 break;
             case SELECTION_MODE:
                 cancelSelectionButton.setVisibility(View.VISIBLE);
                 settingsButton.setVisibility(View.INVISIBLE);
                 deleteImagesWithTagsButton.setVisibility(View.VISIBLE);
-                imageGridView.invalidateViews();
+                if (imageGridView != null) {
+                    imageGridView.invalidateViews();
+                }
                 break;
         }
     }
