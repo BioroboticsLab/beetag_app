@@ -13,7 +13,7 @@ public class TagDatePickerFragment
         extends DialogFragment
         implements DatePickerDialog.OnDateSetListener {
 
-    private TagDatePickerFragment.OnTagDatePickedListener listener;
+    private OnTagDatePickedListener listener;
 
     public interface OnTagDatePickedListener {
         void onTagDatePicked(int year, int month, int day);
@@ -33,7 +33,7 @@ public class TagDatePickerFragment
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        listener = (TagDatePickerFragment.OnTagDatePickedListener) context;
+        listener = (OnTagDatePickedListener) context;
     }
 
     @Override

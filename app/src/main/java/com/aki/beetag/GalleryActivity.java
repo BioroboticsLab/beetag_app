@@ -1,6 +1,7 @@
 package com.aki.beetag;
 
 import android.Manifest;
+import android.app.DialogFragment;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
@@ -43,7 +44,9 @@ import java.util.Comparator;
 import java.util.Locale;
 
 
-public class GalleryActivity extends AppCompatActivity {
+public class GalleryActivity
+        extends AppCompatActivity
+        implements ImageDeletionConfirmationDialogFragment.OnImageDeletionConfirmedListener {
 
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
@@ -294,7 +297,8 @@ public class GalleryActivity extends AppCompatActivity {
                     return;
                 }
 
-                new DeleteTagsOnImagesTask().execute(selectedImageFiles.toArray(new File[selectedImageFiles.size()]));
+                DialogFragment confirmationFragment = new ImageDeletionConfirmationDialogFragment();
+                confirmationFragment.show(getFragmentManager(), "imageDeletionConfirmationDialog");
             }
         });
 
@@ -314,6 +318,11 @@ public class GalleryActivity extends AppCompatActivity {
         });
 
         setUserMode(UserMode.STANDARD_MODE);
+    }
+
+    @Override
+    public void onImageDeletionConfirmed() {
+        new DeleteTagsOnImagesTask().execute(selectedImageFiles.toArray(new File[selectedImageFiles.size()]));
     }
 
     private void setupImageGrid() {
