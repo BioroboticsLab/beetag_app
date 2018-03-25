@@ -7,24 +7,24 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
-public class ImageDeletionConfirmationDialogFragment extends DialogFragment {
+public class TagDeletionConfirmationDialogFragment extends DialogFragment {
 
-    private OnImageDeletionConfirmedListener listener;
+    private OnTagDeletionConfirmedListener listener;
 
-    public interface OnImageDeletionConfirmedListener {
-        void onImageDeletionConfirmed();
+    public interface OnTagDeletionConfirmedListener {
+        void onTagDeletionConfirmed();
     }
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         // use the Builder class for convenient dialog construction
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle("Delete images with tags?")
-                .setMessage("Are you sure you want to delete the selected images? All included " +
-                "bee tags will also be deleted. This action cannot be undone.")
+        builder.setTitle("Delete tag?")
+                .setMessage("Are you sure you want to delete this tag, including all notes and " +
+                        "labels? This action cannot be undone.")
                 .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
-                        listener.onImageDeletionConfirmed();
+                        listener.onTagDeletionConfirmed();
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -39,6 +39,6 @@ public class ImageDeletionConfirmationDialogFragment extends DialogFragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        listener = (OnImageDeletionConfirmedListener) context;
+        listener = (OnTagDeletionConfirmedListener) context;
     }
 }

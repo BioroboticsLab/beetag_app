@@ -68,7 +68,8 @@ import ar.com.hjg.pngj.PngWriter;
 public class DecodingActivity
         extends Activity
         implements TagTimePickerFragment.OnTagTimePickedListener,
-                   TagDatePickerFragment.OnTagDatePickedListener {
+                   TagDatePickerFragment.OnTagDatePickedListener,
+                   TagDeletionConfirmationDialogFragment.OnTagDeletionConfirmedListener {
 
     public enum ViewMode {
         TAGGING_MODE, EDITING_MODE
@@ -547,8 +548,8 @@ public class DecodingActivity
                 }
 
                 if (currentlyEditedTag != null) {
-                    new DatabaseDeleteTask().execute(currentlyEditedTag);
-                    setViewMode(ViewMode.TAGGING_MODE);
+                    DialogFragment confirmationDialog = new TagDeletionConfirmationDialogFragment();
+                    confirmationDialog.show(getFragmentManager(), "tagDeletionConfirmationDialog");
                 }
             }
         });
@@ -730,6 +731,12 @@ public class DecodingActivity
                 tagDate.getDayOfMonth(),
                 tagDate.monthOfYear().getAsShortText(),
                 tagDate.getYear()));
+    }
+
+    @Override
+    public void onTagDeletionConfirmed() {
+        new DatabaseDeleteTask().execute(currentlyEditedTag);
+        setViewMode(ViewMode.TAGGING_MODE);
     }
 
     // sets the view mode and changes UI accordingly
