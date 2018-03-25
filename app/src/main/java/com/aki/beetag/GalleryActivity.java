@@ -48,7 +48,7 @@ public class GalleryActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
 
-    private FloatingActionButton cameraButton;
+    private ImageButton cameraButton;
     private ImageButton cancelSelectionButton;
     private ImageButton deleteImagesWithTagsButton;
     private ImageButton settingsButton;
@@ -437,6 +437,7 @@ public class GalleryActivity extends AppCompatActivity {
                 if (selectedImageFiles != null) {
                     selectedImageFiles.clear();
                 }
+                cameraButton.setVisibility(View.VISIBLE);
                 cancelSelectionButton.setVisibility(View.INVISIBLE);
                 settingsButton.setVisibility(View.VISIBLE);
                 deleteImagesWithTagsButton.setVisibility(View.INVISIBLE);
@@ -445,6 +446,7 @@ public class GalleryActivity extends AppCompatActivity {
                 }
                 break;
             case SELECTION_MODE:
+                cameraButton.setVisibility(View.INVISIBLE);
                 cancelSelectionButton.setVisibility(View.VISIBLE);
                 settingsButton.setVisibility(View.INVISIBLE);
                 deleteImagesWithTagsButton.setVisibility(View.VISIBLE);
