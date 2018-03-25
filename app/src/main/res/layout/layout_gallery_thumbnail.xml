@@ -20,7 +20,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:textColor="#000000"
-        android:background="@color/colorTagCountBackground" />
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:textColor="@color/colorBackground"
+        android:background="@color/colorAccent" />
 
 </FrameLayout>
