@@ -17,6 +17,7 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -56,6 +57,7 @@ public class GalleryActivity
     private ImageButton deleteImagesWithTagsButton;
     private ImageButton settingsButton;
     private GridView imageGridView;
+    private TextView noImagesTextView;
 
     private boolean storageWritePermissionGranted;
     private boolean cameraPermissionGranted;
@@ -101,11 +103,13 @@ public class GalleryActivity
         @Override
         protected void onPostExecute(Integer[] counts) {
             int imageCount = counts.length;
-            int[] tagCounts = new int[imageCount];
-            for (int i = 0; i < imageCount; i++) {
-                tagCounts[i] = counts[i];
+            if (imageCount != 0) {
+                int[] tagCounts = new int[imageCount];
+                for (int i = 0; i < imageCount; i++) {
+                    tagCounts[i] = counts[i];
+                }
+                imageAdapter.updateTagCounts(tagCounts);
             }
-            imageAdapter.updateTagCounts(tagCounts);
         }
     }
 
@@ -159,6 +163,7 @@ public class GalleryActivity
         public ImageAdapter(Context c) {
             this.context = c;
             imageFiles = imageFolder.listFiles();
+            noImagesTextView.setVisibility(imageFiles.length == 0 ? View.VISIBLE : View.INVISIBLE);
             selectedImageFiles = new ArrayList<>();
             Arrays.sort(imageFiles, reverseFileDateComparator);
         }
@@ -231,6 +236,7 @@ public class GalleryActivity
         @Override
         public void notifyDataSetChanged() {
             imageFiles = imageFolder.listFiles();
+            noImagesTextView.setVisibility(imageFiles.length == 0 ? View.VISIBLE : View.INVISIBLE);
             Arrays.sort(imageFiles, reverseFileDateComparator);
             new GetTagCountsTask().execute(imageFiles);
             super.notifyDataSetChanged();
@@ -327,6 +333,10 @@ public class GalleryActivity
 
     private void setupImageGrid() {
         createImageFolder();
+
+        noImagesTextView = findViewById(R.id.textview_gallery_no_images);
+        noImagesTextView.setVisibility(View.INVISIBLE);
+
         imageGridView = findViewById(R.id.gridview_gallery);
         imageAdapter = new ImageAdapter(this);
         imageGridView.setAdapter(imageAdapter);
@@ -369,7 +379,10 @@ public class GalleryActivity
         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (captureIntent.resolveActivity(getPackageManager()) != null) {
             lastImageFile = createImageFile(DateTime.now());
-            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(lastImageFile));
+            Uri lastImageUri = FileProvider.getUriForFile(this,
+                    BuildConfig.APPLICATION_ID + ".fileprovider",
+                    lastImageFile);
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, lastImageUri);
             startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
         }
     }
