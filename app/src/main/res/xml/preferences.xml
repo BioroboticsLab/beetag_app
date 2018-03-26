@@ -14,4 +14,11 @@
             android:hint="http://www.example.com/decode">
         </EditTextPreference>
     </PreferenceCategory>
+    <PreferenceCategory
+        android:title="Export">
+        <Preference
+            android:key="pref_export_database"
+            android:title="Export all tags">
+        </Preference>
+    </PreferenceCategory>
 </PreferenceScreen>

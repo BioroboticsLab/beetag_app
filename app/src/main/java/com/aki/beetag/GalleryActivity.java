@@ -316,8 +316,13 @@ public class GalleryActivity
                     return;
                 }
 
+                Bundle argumentBundle = new Bundle();
+                argumentBundle.putString("databasePath", getDatabasePath("beetag-database").getAbsolutePath());
+                SettingsFragment settingsFragment = new SettingsFragment();
+                settingsFragment.setArguments(argumentBundle);
+
                 getFragmentManager().beginTransaction()
-                        .replace(android.R.id.content, new SettingsFragment())
+                        .replace(android.R.id.content, settingsFragment)
                         .addToBackStack("settings")
                         .commit();
             }
