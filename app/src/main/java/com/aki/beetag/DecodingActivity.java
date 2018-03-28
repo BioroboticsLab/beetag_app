@@ -61,6 +61,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
@@ -622,7 +623,7 @@ public class DecodingActivity
                         currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
                         // update view to show changed tag
                         tagView.invalidate();
-                        beeIdTextView.setText(Integer.toString(currentlyEditedTag.getBeeId()));
+                        beeIdTextView.setText(String.format(Locale.getDefault(), "%d", currentlyEditedTag.getBeeId()));
                     } else {
                         return false;
                     }
