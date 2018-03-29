@@ -47,10 +47,13 @@ import java.util.Locale;
 
 public class GalleryActivity
         extends AppCompatActivity
-        implements ImageDeletionConfirmationDialogFragment.OnImageDeletionConfirmedListener {
+        implements
+            ImageDeletionConfirmationDialogFragment.OnImageDeletionConfirmedListener,
+            DatabaseShareDialogFragment.OnDatabaseShareListener {
 
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
+    private static final int REQUEST_SHARE_DATABASE = 4;
 
     private ImageButton cameraButton;
     private ImageButton cancelSelectionButton;
@@ -334,6 +337,17 @@ public class GalleryActivity
     @Override
     public void onImageDeletionConfirmed() {
         new DeleteTagsOnImagesTask().execute(selectedImageFiles.toArray(new File[selectedImageFiles.size()]));
+    }
+
+    @Override
+    public void onDatabaseShare(File file) {
+        Uri databaseUri = FileProvider.getUriForFile(getApplicationContext(),
+                BuildConfig.APPLICATION_ID + ".fileprovider",
+                file);
+        Intent exportIntent = new Intent();
+        exportIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        exportIntent.setData(databaseUri);
+        startActivityForResult(exportIntent, REQUEST_SHARE_DATABASE);
     }
 
     private void setupImageGrid() {

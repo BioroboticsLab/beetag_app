@@ -1,5 +1,6 @@
 package com.aki.beetag;
 
+import android.app.DialogFragment;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -53,35 +54,40 @@ public class SettingsFragment
                     File downloadsFolder = Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS);
                     File databaseCopy = new File(downloadsFolder, "beetags.db");
-                    if (downloadsFolder.canWrite()) { // maybe replace by try-catch, could return false
-                        try (FileChannel fromChannel =
-                                     new FileInputStream(databaseFile).getChannel();
-                             FileChannel toChannel =
-                                     new FileOutputStream(databaseCopy).getChannel()) {
-                            long transferCount = toChannel.transferFrom(fromChannel, 0, fromChannel.size());
-                            if (transferCount != 0) {
-                                Toast.makeText(getActivity(), "Database successfully copied!", Toast.LENGTH_LONG).show();
-                            } else {
-                                Toast.makeText(getActivity(), "Something went wrong while copying the database.", Toast.LENGTH_LONG).show();
-                            }
-                        } catch (FileNotFoundException e) {
-                            Toast.makeText(getActivity(), "Could not find database file.", Toast.LENGTH_LONG).show();
-                        } catch (IOException e) {
-                            Toast.makeText(getActivity(), "Something went wrong while reading the database.", Toast.LENGTH_LONG).show();
+                    try (FileChannel fromChannel =
+                                 new FileInputStream(databaseFile).getChannel();
+                         FileChannel toChannel =
+                                 new FileOutputStream(databaseCopy).getChannel()) {
+                        long transferCount = toChannel.transferFrom(fromChannel, 0, fromChannel.size());
+                        if (transferCount != 0) {
+                            Toast.makeText(
+                                    getActivity(),
+                                    "Database successfully copied to Downloads.",
+                                    Toast.LENGTH_LONG).show();
+
+                            DatabaseShareDialogFragment shareDialog = new DatabaseShareDialogFragment();
+                            shareDialog.setDatabaseFile(databaseCopy);
+                            shareDialog.show(getFragmentManager(), "databaseShareDialog");
+                        } else {
+                            Toast.makeText(
+                                    getActivity(),
+                                    "Something went wrong while copying the database. (Path: " +
+                                        databaseFile.getAbsolutePath() + ")",
+                                    Toast.LENGTH_LONG).show();
                         }
+                    } catch (FileNotFoundException e) {
+                        Toast.makeText(
+                                getActivity(),
+                                "Could not find database file. (Path: " +
+                                        databaseFile.getAbsolutePath() + ")",
+                                Toast.LENGTH_LONG).show();
+                    } catch (IOException e) {
+                        Toast.makeText(
+                                getActivity(),
+                                "Something went wrong while reading the database. (Path: " +
+                                        databaseFile.getAbsolutePath() + ")",
+                                Toast.LENGTH_LONG).show();
                     }
-
-                    /*
-                    Uri databaseUri = FileProvider.getUriForFile(getActivity(),
-                            BuildConfig.APPLICATION_ID + ".fileprovider",
-                            databaseCopy);
-                    Intent exportIntent = new Intent();
-                    exportIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    exportIntent.setData(databaseUri); //////setDataAndType()?
-                    startActivityForResult(exportIntent, 3783463); /////// insert ID
-                    */
-
-                    ///////Toast.makeText(getActivity(), "The database file could not be accessed.", Toast.LENGTH_LONG).show();
                 } else {
                     Toast.makeText(getActivity(), "The database file could not be located.", Toast.LENGTH_LONG).show();
                     return true;

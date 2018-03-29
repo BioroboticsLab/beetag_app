@@ -15,10 +15,10 @@
         </EditTextPreference>
     </PreferenceCategory>
     <PreferenceCategory
-        android:title="Export">
+        android:title="Export data">
         <Preference
             android:key="pref_export_database"
-            android:title="Export all tags">
+            android:title="Export all tags as SQLite">
         </Preference>
     </PreferenceCategory>
 </PreferenceScreen>

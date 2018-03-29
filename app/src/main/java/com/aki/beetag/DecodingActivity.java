@@ -68,9 +68,10 @@ import ar.com.hjg.pngj.PngWriter;
 
 public class DecodingActivity
         extends Activity
-        implements TagTimePickerFragment.OnTagTimePickedListener,
-                   TagDatePickerFragment.OnTagDatePickedListener,
-                   TagDeletionConfirmationDialogFragment.OnTagDeletionConfirmedListener {
+        implements
+            TagTimePickerFragment.OnTagTimePickedListener,
+            TagDatePickerFragment.OnTagDatePickedListener,
+            TagDeletionConfirmationDialogFragment.OnTagDeletionConfirmedListener {
 
     public enum ViewMode {
         TAGGING_MODE, EDITING_MODE
