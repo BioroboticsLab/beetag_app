@@ -155,7 +155,7 @@ public class TagView extends SubsamplingScaleImageView {
         // tagging circle
         if (viewMode == DecodingActivity.ViewMode.TAGGING_MODE) {
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(3);
+            paint.setStrokeWidth(5);
             paint.setColor(Color.argb(140, 0, 0, 0)); // black
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, tagCircleRadius, paint);
             paint.setStrokeWidth(1);

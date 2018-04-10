@@ -15,6 +15,19 @@
         </EditTextPreference>
     </PreferenceCategory>
     <PreferenceCategory
+        android:title="Bee tags">
+        <EditTextPreference
+            android:key="pref_default_label"
+            android:title="Default label"
+            android:singleLine="true">
+        </EditTextPreference>
+        <SwitchPreference
+            android:key="pref_display_bee_name"
+            android:title="Display bee name"
+            android:defaultValue="true">
+        </SwitchPreference>
+    </PreferenceCategory>
+    <PreferenceCategory
         android:title="Export data">
         <Preference
             android:key="pref_export_database"

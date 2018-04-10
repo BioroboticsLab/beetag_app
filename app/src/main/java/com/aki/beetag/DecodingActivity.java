@@ -101,6 +101,10 @@ public class DecodingActivity
     private TagDao dao;
 
     private SharedPreferences sharedPreferences;
+    private boolean displayBeeNameEnabled;
+    private boolean onlineDecodingEnabled;
+
+    private BeeNamer beeNamer;
 
     private Tag currentlyEditedTag;
     private double dragStartingAngle;
@@ -297,7 +301,9 @@ public class DecodingActivity
         protected void onPostExecute(DecodingResult result) {
             switch (result.resultCode) {
                 case DecodingResult.OK:
-                    new DatabaseInsertTask().execute(result.decodedTags.get(0));
+                    Tag resultTag = result.decodedTags.get(0);
+                    resultTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
+                    new DatabaseInsertTask().execute(resultTag);
                     break;
                 case DecodingResult.TAG_NOT_FOUND:
                     Toast.makeText(
@@ -422,6 +428,7 @@ public class DecodingActivity
         dummyTag.setRadius(radius);
         dummyTag.setOrientation(0);
         dummyTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
+        dummyTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
         new DatabaseInsertTask().execute(dummyTag);
     }
 
@@ -440,6 +447,10 @@ public class DecodingActivity
         dao = database.getDao();
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        displayBeeNameEnabled = sharedPreferences.getBoolean("pref_display_bee_name", true);
+        onlineDecodingEnabled = sharedPreferences.getBoolean("pref_online_decoding_enabled", false);
+
+        beeNamer = new BeeNamer();
 
         tagInfoLayout = findViewById(R.id.relativelayout_tag_info);
         tagInfoScrollView = findViewById(R.id.scrollview_tag_info);
@@ -507,7 +518,7 @@ public class DecodingActivity
                 float tagSizeInPx = (tagView.getTagCircleRadius() * 2) / tagView.getScale();
                 int appliedOrientation = tagView.getAppliedOrientation();
 
-                if (sharedPreferences.getBoolean("pref_online_decoding_enabled", false)) {
+                if (onlineDecodingEnabled) {
                     try {
                         URL serverUrl;
                         serverUrl = buildUrl();
@@ -624,7 +635,20 @@ public class DecodingActivity
                         currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
                         // update view to show changed tag
                         tagView.invalidate();
-                        beeIdTextView.setText(String.format(Locale.getDefault(), "%d", currentlyEditedTag.getBeeId()));
+
+                        // if bee name should be displayed, append it to ID
+                        String beeNameSuffix;
+                        if (displayBeeNameEnabled) {
+                            beeNameSuffix = String.format(
+                                    getResources().getString(R.string.bee_name_appended),
+                                    beeNamer.getBeeName(currentlyEditedTag.getBeeId()));
+                        } else {
+                            beeNameSuffix = "";
+                        }
+                        beeIdTextView.setText(String.format(
+                                getResources().getString(R.string.bee_id),
+                                currentlyEditedTag.getBeeId(),
+                                beeNameSuffix));
                     } else {
                         return false;
                     }
@@ -758,9 +782,19 @@ public class DecodingActivity
                 tagView.setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
                 break;
             case EDITING_MODE:
+                // if bee name should be displayed, append it to ID
+                String beeNameSuffix;
+                if (displayBeeNameEnabled) {
+                    beeNameSuffix = String.format(
+                            getResources().getString(R.string.bee_name_appended),
+                            beeNamer.getBeeName(currentlyEditedTag.getBeeId()));
+                } else {
+                    beeNameSuffix = "";
+                }
                 beeIdTextView.setText(String.format(
                         getResources().getString(R.string.bee_id),
-                        currentlyEditedTag.getBeeId()));
+                        currentlyEditedTag.getBeeId(),
+                        beeNameSuffix));
                 DateTime tagDate = currentlyEditedTag.getDate();
                 tagDateTextView.setText(String.format(
                         getResources().getString(R.string.tag_date),

@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">Beetag</string>
 
-    <string name="bee_id">%d</string>
+    <string name="bee_id">%d%s</string>
+    <string name="bee_name_appended">" \"%s\""</string>
     <string name="tag_date">%d %s %d</string>
     <string name="tag_time">%02d:%02d</string>
-    <string name="tag_detection_id">Detection ID: %d</string>
+    <string name="tag_detection_id">Database entry ID: %d</string>
 </resources>

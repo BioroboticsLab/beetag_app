@@ -112,7 +112,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
                     android:layout_marginTop="10dp"
-                    android:text="1337 (Sabiene)"
+                    android:text="@string/bee_id"
                     android:textAlignment="textEnd"
                     android:textColor="@color/colorText"
                     android:textSize="20sp" />
@@ -178,7 +178,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentRight="true"
                     android:layout_below="@id/textview_tag_info_time"
-                    android:hint="e.g. ''experiment #1''"
+                    android:hint="e.g. ''feeder #1''"
                     android:inputType="text"
                     android:maxWidth="250dp"
                     android:minWidth="150dp"

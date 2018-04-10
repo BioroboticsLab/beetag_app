@@ -1,15 +1,11 @@
 package com.aki.beetag;
 
-import android.app.DialogFragment;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
 import android.support.annotation.Nullable;
-import android.support.v4.content.FileProvider;
 import android.view.View;
 import android.widget.Toast;
 
@@ -44,6 +40,8 @@ public class SettingsFragment
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
         findPreference("pref_decoding_server_url")
                 .setSummary(sharedPreferences.getString("pref_decoding_server_url", null));
+        findPreference("pref_default_label")
+                .setSummary(sharedPreferences.getString("pref_default_label", null));
 
         Preference exportDatabaseButton = findPreference("pref_export_database");
         exportDatabaseButton.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
@@ -105,7 +103,7 @@ public class SettingsFragment
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals("pref_decoding_server_url")) {
+        if (key.equals("pref_decoding_server_url") || key.equals("pref_default_label")) {
             findPreference(key).setSummary(sharedPreferences.getString(key, null));
         }
     }
