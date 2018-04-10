@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
 
+// Main activity
 
 public class GalleryActivity
         extends AppCompatActivity
@@ -51,15 +52,22 @@ public class GalleryActivity
             ImageDeletionConfirmationDialogFragment.OnImageDeletionConfirmedListener,
             DatabaseShareDialogFragment.OnDatabaseShareListener {
 
+    // constants
     private static final int REQUEST_PERMISSIONS = 2;
     private static final int REQUEST_CAPTURE_IMAGE = 3;
     private static final int REQUEST_SHARE_DATABASE = 4;
 
+    // launches the camera app
     private ImageButton cameraButton;
+    // exits image selection mode
     private ImageButton cancelSelectionButton;
+    // deletes selected images
     private ImageButton deleteImagesWithTagsButton;
+    // opens settings
     private ImageButton settingsButton;
+    // contains square thumbnails
     private GridView imageGridView;
+    // message that is displayed if folder contains no images
     private TextView noImagesTextView;
 
     private boolean storageWritePermissionGranted;
@@ -73,6 +81,8 @@ public class GalleryActivity
     private ArrayList<File> selectedImageFiles;
     private File lastImageFile;
 
+    // Standard mode:  tapping on a thumbnail launches DecodingActivity
+    // Selection mode: tapping on thumbnails selects the images (e.g. for deletion)
     private enum UserMode {
         STANDARD_MODE, SELECTION_MODE
     }
@@ -80,6 +90,7 @@ public class GalleryActivity
 
     private ImageAdapter imageAdapter;
 
+    // Comparator that is used to reverse sort the images after "last modified" date (newest on top)
     private Comparator<File> reverseFileDateComparator = new Comparator<File>() {
         @Override
         public int compare(File l, File r) {
@@ -87,6 +98,7 @@ public class GalleryActivity
         }
     };
 
+    // AsyncTask that fetches the amount of tags marked on each image from the tag database
     private class GetTagCountsTask extends AsyncTask<File[], Void, Integer[]> {
         @Override
         protected Integer[] doInBackground(File[]... files) {
@@ -116,6 +128,7 @@ public class GalleryActivity
         }
     }
 
+    // AsyncTask that deletes all tag entries that belong to the specified image files
     private class DeleteTagsOnImagesTask extends AsyncTask<File[], Void, File[]> {
         @Override
         protected File[] doInBackground(File[]... files) {
@@ -334,6 +347,7 @@ public class GalleryActivity
         setUserMode(UserMode.STANDARD_MODE);
     }
 
+    // called by TagDeletionConfirmationDialogFragment when the user confirms the deletion of images
     @Override
     public void onImageDeletionConfirmed() {
         new DeleteTagsOnImagesTask().execute(selectedImageFiles.toArray(new File[selectedImageFiles.size()]));
@@ -394,6 +408,7 @@ public class GalleryActivity
         new GetTagCountsTask().execute(imageFolder.listFiles());
     }
 
+    // opens the camera app
     private void dispatchCaptureIntent() {
         Intent captureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (captureIntent.resolveActivity(getPackageManager()) != null) {
@@ -429,23 +444,6 @@ public class GalleryActivity
         if (imageAdapter != null) {
             imageAdapter.notifyDataSetChanged();
         }
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        /*
-        View decorView = getWindow().getDecorView();
-        if (hasFocus) {
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        }
-        */
     }
 
     @Override
@@ -523,7 +521,8 @@ public class GalleryActivity
 
     private void checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ArrayList<String> permissions = new ArrayList<String>();
+            // on Marshmallow and later, we need to explicitly check permissions
+            ArrayList<String> permissions = new ArrayList<>();
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                     PackageManager.PERMISSION_GRANTED) {
                 cameraPermissionGranted = true;

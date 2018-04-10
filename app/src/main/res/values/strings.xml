@@ -6,4 +6,15 @@
     <string name="tag_date">%d %s %d</string>
     <string name="tag_time">%02d:%02d</string>
     <string name="tag_detection_id">Database entry ID: %d</string>
+    <string name="gallery_no_images_message">
+        The \"Beetags\" image folder is empty. Take a new picture by tapping on the camera icon.
+    </string>
+    <string name="button_label_text_input_done">DONE</string>
+    <string name="tag_info_bee">Bee</string>
+    <string name="tag_info_time_of_observation">Time of observation</string>
+    <string name="tag_info_label">Label</string>
+    <string name="tag_info_notes">Notes</string>
+    <string name="tag_label_hint">e.g. \"feeder #1\"</string>
+    <string name="tag_notes_hint">e.g. \"needs checking\"</string>
+
 </resources>

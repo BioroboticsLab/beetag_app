@@ -61,10 +61,11 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
+
+// This is the activity that launches when tapping on one of the thumbnails in GalleryActivity.
 
 public class DecodingActivity
         extends Activity
@@ -73,6 +74,8 @@ public class DecodingActivity
             TagDatePickerFragment.OnTagDatePickedListener,
             TagDeletionConfirmationDialogFragment.OnTagDeletionConfirmedListener {
 
+    // Tagging mode: the user can move the image around and mark tags
+    // Editing mode: one tag is displayed, the user can edit its data
     public enum ViewMode {
         TAGGING_MODE, EDITING_MODE
     }
@@ -104,12 +107,15 @@ public class DecodingActivity
     private boolean displayBeeNameEnabled;
     private boolean onlineDecodingEnabled;
 
+    // class that supplies the bee names
     private BeeNamer beeNamer;
 
+    // tag that is currently being edited (in editing mode)
     private Tag currentlyEditedTag;
     private double dragStartingAngle;
     private double tagOrientationBeforeDrag;
 
+    // AsyncTask that issues a request to the decoding server and processes the response
     private class ServerRequestTask extends AsyncTask<DecodingData, Void, DecodingResult> {
         @Override
         protected DecodingResult doInBackground(DecodingData... decodingData) {
@@ -355,6 +361,7 @@ public class DecodingActivity
         }
     }
 
+    // AsyncTask that fetches the tags that belong to an image from the database
     private class GetTagsTask extends AsyncTask<Uri, Void, List<Tag>> {
         @Override
         protected List<Tag> doInBackground(Uri... uris) {
@@ -370,6 +377,7 @@ public class DecodingActivity
         }
     }
 
+    // AsyncTask that inserts a tag into the database
     private class DatabaseInsertTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
@@ -386,6 +394,7 @@ public class DecodingActivity
         }
     }
 
+    // AsyncTask that deletes a tag from the database
     private class DatabaseDeleteTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
@@ -402,6 +411,7 @@ public class DecodingActivity
         }
     }
 
+    // AsyncTask that updates a tag in the database
     private class DatabaseUpdateTask extends AsyncTask<Tag, Void, Void> {
         @Override
         protected Void doInBackground(Tag... tags) {
@@ -417,19 +427,6 @@ public class DecodingActivity
             Toast.makeText(getApplicationContext(), "Tag saved.", Toast.LENGTH_SHORT).show();
             new GetTagsTask().execute(imageUri);
         }
-    }
-
-    private void insertDummyTag(PointF position, float radius) {
-        Tag dummyTag = new Tag();
-        dummyTag.setBeeId(0);
-        dummyTag.setImageName(imageUri.getLastPathSegment());
-        dummyTag.setCenterX(position.x);
-        dummyTag.setCenterY(position.y);
-        dummyTag.setRadius(radius);
-        dummyTag.setOrientation(0);
-        dummyTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
-        dummyTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
-        new DatabaseInsertTask().execute(dummyTag);
     }
 
     @Override
@@ -763,6 +760,21 @@ public class DecodingActivity
     public void onTagDeletionConfirmed() {
         new DatabaseDeleteTask().execute(currentlyEditedTag);
         setViewMode(ViewMode.TAGGING_MODE);
+    }
+
+    // inserts a tag with ID 0 into the database,
+    // at the specified position, with the specified radius
+    private void insertDummyTag(PointF position, float radius) {
+        Tag dummyTag = new Tag();
+        dummyTag.setBeeId(0);
+        dummyTag.setImageName(imageUri.getLastPathSegment());
+        dummyTag.setCenterX(position.x);
+        dummyTag.setCenterY(position.y);
+        dummyTag.setRadius(radius);
+        dummyTag.setOrientation(0);
+        dummyTag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
+        dummyTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
+        new DatabaseInsertTask().execute(dummyTag);
     }
 
     // sets the view mode and changes UI accordingly
