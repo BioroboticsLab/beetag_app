@@ -158,7 +158,6 @@ public class DecodingActivity
                     imageCropZone.right - imageCropZone.left,
                     imageCropZone.bottom - imageCropZone.top,
                     rotationMatrix,
-                    // TODO: check results with filter = true
                     false);
 
             // Intermediate stream that the PNG is written to,
@@ -526,7 +525,7 @@ public class DecodingActivity
                                 tagSizeInPx,
                                 appliedOrientation);
                         new ServerRequestTask().execute(tagData);
-                    } catch (JSONException | MalformedURLException e) {
+                    } catch (JSONException | MalformedURLException | UnsupportedEncodingException e) {
                         Toast.makeText(getApplicationContext(), "Invalid server URL", Toast.LENGTH_SHORT).show();
                         insertDummyTag(tagCenter, tagSizeInPx / 2);
                     }
@@ -845,37 +844,13 @@ public class DecodingActivity
         }
     }
 
-    private URL buildUrl() throws JSONException, MalformedURLException {
-        // TODO: use Uri.Builder for this
-        String address = sharedPreferences.getString("pref_decoding_server_url", "");
-
+    private URL buildUrl() throws JSONException, MalformedURLException, UnsupportedEncodingException {
         JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
-        HashMap<String, String> params = new HashMap<>();
-        params.put("output", output.toString());
-        return new URL(address + buildUrlParamsString(params));
-    }
-
-    // from a HashMap of key/value pairs, return the URL query string;
-    // values are percent-encoded
-    private String buildUrlParamsString(HashMap<String, String> params) {
-        StringBuilder stringBuilder = new StringBuilder();
-        boolean first = true;
-        try {
-            for (HashMap.Entry<String, String> entry : params.entrySet()) {
-                if (!first) {
-                    stringBuilder.append("&");
-                } else {
-                    stringBuilder.append("?");
-                    first = false;
-                }
-                stringBuilder.append(entry.getKey());
-                stringBuilder.append("=");
-                stringBuilder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-            }
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return stringBuilder.toString();
+        Uri serverUri = Uri.parse(sharedPreferences.getString("pref_decoding_server_url", ""))
+                .buildUpon()
+                .appendQueryParameter("output", URLEncoder.encode(output.toString(), "UTF-8"))
+                .build();
+        return new URL(serverUri.toString());
     }
 
     @Override
