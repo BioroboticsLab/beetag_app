@@ -417,7 +417,14 @@ public class GalleryActivity
                     BuildConfig.APPLICATION_ID + ".fileprovider",
                     lastImageFile);
             captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, lastImageUri);
-            startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
+            if (captureIntent.resolveActivity(getPackageManager()) != null) {
+                startActivityForResult(captureIntent, REQUEST_CAPTURE_IMAGE);
+            } else {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Could not open camera application.",
+                        Toast.LENGTH_LONG).show();
+            }
         }
     }
 
