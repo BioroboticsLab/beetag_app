@@ -1,9 +1,7 @@
 package com.aki.beetag;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.TimePickerDialog;
 import android.arch.persistence.room.Room;
 import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
@@ -20,8 +18,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
-import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -32,7 +28,6 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -59,8 +54,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import ar.com.hjg.pngj.ImageInfo;
 import ar.com.hjg.pngj.PngWriter;
@@ -307,6 +302,7 @@ public class DecodingActivity
             switch (result.resultCode) {
                 case DecodingResult.OK:
                     Tag resultTag = result.decodedTags.get(0);
+                    resultTag.setEntryId(UUID.randomUUID().toString());
                     resultTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
                     new DatabaseInsertTask().execute(resultTag);
                     break;
@@ -765,6 +761,7 @@ public class DecodingActivity
     // at the specified position, with the specified radius
     private void insertDummyTag(PointF position, float radius) {
         Tag dummyTag = new Tag();
+        dummyTag.setEntryId(UUID.randomUUID().toString());
         dummyTag.setBeeId(0);
         dummyTag.setImageName(imageUri.getLastPathSegment());
         dummyTag.setCenterX(position.x);

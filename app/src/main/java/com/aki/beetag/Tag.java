@@ -3,6 +3,7 @@ package com.aki.beetag;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.PrimaryKey;
 import android.arch.persistence.room.TypeConverters;
+import android.support.annotation.NonNull;
 
 import org.joda.time.DateTime;
 
@@ -12,8 +13,9 @@ import java.util.Collections;
 @Entity(tableName = "tag")
 @TypeConverters({DateTimeConverter.class})
 public class Tag {
-    @PrimaryKey(autoGenerate = true)
-    private int entryId;
+    @NonNull
+    @PrimaryKey
+    private String entryId;
     private DateTime date;
     private int beeId;
     private String beeName;
@@ -53,11 +55,11 @@ public class Tag {
 
     /* Getters and setters */
 
-    public int getEntryId() {
+    public String getEntryId() {
         return entryId;
     }
 
-    public void setEntryId(int entryId) {
+    public void setEntryId(String entryId) {
         this.entryId = entryId;
     }
 

@@ -5,7 +5,7 @@
     <string name="bee_name_appended">" \"%s\""</string>
     <string name="tag_date">%d %s %d</string>
     <string name="tag_time">%02d:%02d</string>
-    <string name="tag_detection_id">Database entry ID: %d</string>
+    <string name="tag_detection_id">Database entry ID: %s</string>
     <string name="gallery_no_images_message">
         The \"Beetags\" image folder is empty. Take a new picture by tapping on the camera icon.
     </string>
