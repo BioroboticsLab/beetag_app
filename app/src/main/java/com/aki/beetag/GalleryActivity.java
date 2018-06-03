@@ -236,7 +236,7 @@ public class GalleryActivity
                 thumbnailSelectionOverlay.setVisibility(View.INVISIBLE);
             }
 
-            if (tagCounts != null) {
+            if (tagCounts != null && tagCounts.length > position) {
                 TextView thumbnailTextView = thumbnailView.findViewById(R.id.textview_gallery_thumbnail_tagcount);
                 if (tagCounts[position] != 0) {
                     thumbnailTextView.setText(String.format(Locale.US, "%d", tagCounts[position]));
@@ -361,6 +361,7 @@ public class GalleryActivity
         Intent exportIntent = new Intent();
         exportIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         exportIntent.setData(databaseUri);
+        exportIntent.putExtra(Intent.EXTRA_STREAM, databaseUri);
         startActivityForResult(exportIntent, REQUEST_SHARE_DATABASE);
     }
 
