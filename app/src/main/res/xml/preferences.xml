@@ -1,18 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory
-        android:title="Decoding server">
+        android:title="Automatic tag decoding">
         <SwitchPreference
             android:key="pref_online_decoding_enabled"
             android:title="Online decoding of tags"
             android:defaultValue="false">
         </SwitchPreference>
-
         <EditTextPreference
             android:key="pref_decoding_server_url"
             android:title="Decoding server URL"
             android:hint="http://www.example.com/decode">
         </EditTextPreference>
+        <SwitchPreference
+            android:key="pref_detect_all_tags"
+            android:title="Try to detect all tags at once"
+            android:defaultValue="false">
+        </SwitchPreference>
     </PreferenceCategory>
     <PreferenceCategory
         android:title="Bee tags">

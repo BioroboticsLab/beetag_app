@@ -99,8 +99,6 @@ public class DecodingActivity
     private TagDao dao;
 
     private SharedPreferences sharedPreferences;
-    private boolean displayBeeNameEnabled;
-    private boolean onlineDecodingEnabled;
 
     // class that supplies the bee names
     private BeeNamer beeNamer;
@@ -115,45 +113,77 @@ public class DecodingActivity
         @Override
         protected DecodingResult doInBackground(DecodingData... decodingData) {
             DecodingData data = decodingData[0];
+
+            // find out dimensions of image
             BitmapFactory.Options options = new BitmapFactory.Options();
             Bitmap imageBitmap = BitmapFactory.decodeFile(new File(data.imageUri.getPath()).getAbsolutePath(), options);
             int imageWidth = options.outWidth;
             int imageHeight = options.outHeight;
-            PointF tagCenter = new PointF();
-            switch (data.appliedOrientation) {
-                case 90:
-                    // rotate tagCenter by 90 degrees, counter-clockwise
-                    tagCenter.set(data.tagCenter.y, imageHeight-data.tagCenter.x);
-                    break;
-                case 180:
-                    // rotate tagCenter by 180 degrees
-                    tagCenter.set(imageWidth-data.tagCenter.x, imageHeight-data.tagCenter.y);
-                    break;
-                case 270:
-                    // rotate tagCenter by 90 degrees, clockwise
-                    tagCenter.set(imageWidth-data.tagCenter.y, data.tagCenter.x);
-                    break;
-                default:
-                    tagCenter.set(data.tagCenter);
-                    break;
-            }
 
-            Matrix rotationMatrix = new Matrix();
-            rotationMatrix.postRotate(data.appliedOrientation);
+            // matrix for the sent image to be correctly rotated and scaled
+            Matrix transformationMatrix = new Matrix();
+            transformationMatrix.postRotate(data.appliedOrientation);
             int tagSizeTargetInPx = 50;
             float tagScaleToTarget = tagSizeTargetInPx / data.tagSizeInPx;
-            rotationMatrix.postScale(tagScaleToTarget, tagScaleToTarget);
+            transformationMatrix.postScale(tagScaleToTarget, tagScaleToTarget);
 
-            ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 2f);
-            Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
-            Bitmap croppedTag = Bitmap.createBitmap(
-                    imageBitmap,
-                    imageCropZone.left,
-                    imageCropZone.top,
-                    imageCropZone.right - imageCropZone.left,
-                    imageCropZone.bottom - imageCropZone.top,
-                    rotationMatrix,
-                    false);
+            Bitmap finalImage;
+
+            if (data.mode == DecodingData.DetectionMode.AUTOMATIC) {
+                finalImage = Bitmap.createBitmap(
+                        imageBitmap,
+                        0,
+                        0,
+                        imageWidth,
+                        imageHeight,
+                        transformationMatrix,
+                        false);
+            } else {
+                // reposition tagCenter based on rotation of image
+                PointF tagCenter = new PointF();
+                switch (data.appliedOrientation) {
+                    case 90:
+                        // rotate tagCenter by 90 degrees, counter-clockwise
+                        tagCenter.set(data.tagCenter.y, imageHeight-data.tagCenter.x);
+                        break;
+                    case 180:
+                        // rotate tagCenter by 180 degrees
+                        tagCenter.set(imageWidth-data.tagCenter.x, imageHeight-data.tagCenter.y);
+                        break;
+                    case 270:
+                        // rotate tagCenter by 90 degrees, clockwise
+                        tagCenter.set(imageWidth-data.tagCenter.y, data.tagCenter.x);
+                        break;
+                    default:
+                        tagCenter.set(data.tagCenter);
+                        break;
+                }
+
+                ImageSquare cropSquare = new ImageSquare(tagCenter, data.tagSizeInPx * 2f);
+                Rect imageCropZone = cropSquare.getImageOverlap(imageWidth, imageHeight);
+                finalImage = Bitmap.createBitmap(
+                        imageBitmap,
+                        imageCropZone.left,
+                        imageCropZone.top,
+                        imageCropZone.right - imageCropZone.left,
+                        imageCropZone.bottom - imageCropZone.top,
+                        transformationMatrix,
+                        false);
+            }
+
+            // Dimensions of the final image that is sent for detection/decoding.
+            // For a single decoding (without the server-side detection of tags), the image
+            // must have a size of 100x100. In case of server-side tag detection, the
+            // entire image is sent.
+            int finalImageWidth;
+            int finalImageHeight;
+            if (data.mode == DecodingData.DetectionMode.AUTOMATIC) {
+                finalImageWidth = finalImage.getWidth();
+                finalImageHeight = finalImage.getHeight();
+            } else {
+                finalImageWidth = 100;
+                finalImageHeight = 100;
+            }
 
             // Intermediate stream that the PNG is written to,
             // to find out the overall data size.
@@ -162,21 +192,19 @@ public class DecodingActivity
             // (ChunkedStreamingMode is not supported by the bb_pipeline_api,
             // so we have to use FixedLengthStreamingMode)
             ByteArrayOutputStream pngStream = new ByteArrayOutputStream();
-            int cutoutWidth = croppedTag.getWidth();
-            int cutoutHeight = croppedTag.getHeight();
 
-            // single channel (grayscale, no alpha) PNG, 8 bit, not indexed
-            ImageInfo imgInfo = new ImageInfo(100, 100, 8, false, true, false);
+            // single channel PNG (8 bit, no alpha, grayscale, not indexed)
+            ImageInfo imgInfo = new ImageInfo(finalImageWidth, finalImageHeight, 8, false, true, false);
             PngWriter pngWriter = new PngWriter(pngStream, imgInfo);
-            // cropped image size must always be 100x100
-            int[] grayLine = new int[100];
-            for (int y = 0; y < 100; y++) {
+
+            int[] grayLine = new int[finalImageWidth];
+            for (int y = 0; y < finalImageHeight; y++) {
                 // write PNG line by line
-                for (int x = 0; x < 100; x++) {
+                for (int x = 0; x < finalImageWidth; x++) {
                     int grayValue;
-                    // leave out pixels or add padding if image size is not 100x100
-                    if (x < cutoutWidth && y < cutoutHeight) {
-                        int pixel = croppedTag.getPixel(x, y);
+                    // add padding if image size is not correct
+                    if (x < finalImageWidth && y < finalImageHeight) {
+                        int pixel = finalImage.getPixel(x, y);
                         // convert pixel to grayscale
                         grayValue = (int) (0.2125 * ((pixel >> 16) & 0xff));
                         grayValue += (int) (0.7154 * ((pixel >> 8) & 0xff));
@@ -214,6 +242,8 @@ public class DecodingActivity
                 int mapSize = unpacker.unpackMapHeader();
                 ArrayList<ArrayList<Integer>> ids = new ArrayList<>();
                 ArrayList<Double> orientations = new ArrayList<>();
+                ArrayList<ArrayList<Float>> localizerPositions = new ArrayList<>();
+
                 for (int i = 0; i < mapSize; i++) {
                     String key = unpacker.unpackString();
                     switch (key) {
@@ -245,13 +275,37 @@ public class DecodingActivity
                                 }
                             }
                             break;
+                        case "LocalizerPositions":
+                            int localizerPositionsListLength = unpacker.unpackArrayHeader();
+                            ArrayList<Float> localizerPosition;
+                            for (int j = 0; j < localizerPositionsListLength; j++) {
+                                localizerPosition = new ArrayList<>();
+                                // will always be 2 (x and y coordinates)
+                                int localizerPositionLength = unpacker.unpackArrayHeader();
+                                for (int k = 0; k < localizerPositionLength; k++) {
+                                    localizerPosition.add(unpacker.unpackFloat());
+                                }
+                                localizerPositions.add(localizerPosition);
+                            }
+                            break;
                     }
                 }
-                int tagCount = Math.min(ids.size(), orientations.size());
+
+                int tagCount;
+                if (data.mode == DecodingData.DetectionMode.AUTOMATIC) {
+                    tagCount = Math.min(localizerPositions.size(), Math.min(ids.size(), orientations.size()));
+                } else {
+                    tagCount = Math.min(ids.size(), orientations.size());
+                }
                 for (int i = 0; i < tagCount; i++) {
                     Tag tag = new Tag();
-                    tag.setCenterX(data.tagCenter.x);
-                    tag.setCenterY(data.tagCenter.y);
+                    if (data.mode == DecodingData.DetectionMode.AUTOMATIC) {
+                        tag.setCenterX(localizerPositions.get(i).get(1) / tagScaleToTarget);
+                        tag.setCenterY(localizerPositions.get(i).get(0) / tagScaleToTarget);
+                    } else {
+                        tag.setCenterX(data.tagCenter.x);
+                        tag.setCenterY(data.tagCenter.y);
+                    }
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageUri.getLastPathSegment());
                     tag.setOrientation(orientations.get(i));
@@ -301,10 +355,12 @@ public class DecodingActivity
         protected void onPostExecute(DecodingResult result) {
             switch (result.resultCode) {
                 case DecodingResult.OK:
-                    Tag resultTag = result.decodedTags.get(0);
-                    resultTag.setEntryId(UUID.randomUUID().toString());
-                    resultTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
-                    new DatabaseInsertTask().execute(resultTag);
+                    for (Tag resultTag : result.decodedTags) {
+                        resultTag.setEntryId(UUID.randomUUID().toString());
+                        resultTag.setLabel(sharedPreferences.getString("pref_default_label", ""));
+                        // TODO: consider inserting all tags in a single task
+                        new DatabaseInsertTask().execute(resultTag);
+                    }
                     break;
                 case DecodingResult.TAG_NOT_FOUND:
                     Toast.makeText(
@@ -439,8 +495,6 @@ public class DecodingActivity
         dao = database.getDao();
 
         sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        displayBeeNameEnabled = sharedPreferences.getBoolean("pref_display_bee_name", true);
-        onlineDecodingEnabled = sharedPreferences.getBoolean("pref_online_decoding_enabled", false);
 
         beeNamer = new BeeNamer();
 
@@ -510,11 +564,18 @@ public class DecodingActivity
                 float tagSizeInPx = (tagView.getTagCircleRadius() * 2) / tagView.getScale();
                 int appliedOrientation = tagView.getAppliedOrientation();
 
-                if (onlineDecodingEnabled) {
+                if (sharedPreferences.getBoolean("pref_online_decoding_enabled", false)) {
                     try {
                         URL serverUrl;
                         serverUrl = buildUrl();
+                        DecodingData.DetectionMode mode;
+                        if (sharedPreferences.getBoolean("pref_detect_all_tags", false)) {
+                            mode = DecodingData.DetectionMode.AUTOMATIC;
+                        } else {
+                            mode = DecodingData.DetectionMode.SINGLE;
+                        }
                         DecodingData tagData = new DecodingData(
+                                mode,
                                 serverUrl,
                                 imageUri,
                                 tagCenter,
@@ -630,7 +691,7 @@ public class DecodingActivity
 
                         // if bee name should be displayed, append it to ID
                         String beeNameSuffix;
-                        if (displayBeeNameEnabled) {
+                        if (sharedPreferences.getBoolean("pref_display_bee_name", true)) {
                             beeNameSuffix = String.format(
                                     getResources().getString(R.string.bee_name_appended),
                                     beeNamer.getBeeName(currentlyEditedTag.getBeeId()));
@@ -792,7 +853,7 @@ public class DecodingActivity
             case EDITING_MODE:
                 // if bee name should be displayed, append it to ID
                 String beeNameSuffix;
-                if (displayBeeNameEnabled) {
+                if (sharedPreferences.getBoolean("pref_display_bee_name", true)) {
                     beeNameSuffix = String.format(
                             getResources().getString(R.string.bee_name_appended),
                             beeNamer.getBeeName(currentlyEditedTag.getBeeId()));
@@ -842,11 +903,25 @@ public class DecodingActivity
     }
 
     private URL buildUrl() throws JSONException, MalformedURLException, UnsupportedEncodingException {
-        JSONArray output = new JSONArray(new String[] {"IDs", "Orientations"});
-        Uri serverUri = Uri.parse(sharedPreferences.getString("pref_decoding_server_url", ""))
-                .buildUpon()
-                .appendQueryParameter("output", URLEncoder.encode(output.toString(), "UTF-8"))
-                .build();
+        JSONArray output;
+        Uri serverUri;
+        if (sharedPreferences.getBoolean("pref_detect_all_tags", false)) {
+            output = new JSONArray(new String[]{"IDs", "Orientations", "LocalizerPositions"});
+            serverUri = Uri.parse(sharedPreferences.getString("pref_decoding_server_url", ""))
+                    .buildUpon()
+                    .appendPath("decode")
+                    .appendPath("automatic")
+                    .appendQueryParameter("output", URLEncoder.encode(output.toString(), "UTF-8"))
+                    .build();
+        } else {
+            output = new JSONArray(new String[]{"IDs", "Orientations"});
+            serverUri = Uri.parse(sharedPreferences.getString("pref_decoding_server_url", ""))
+                    .buildUpon()
+                    .appendPath("decode")
+                    .appendPath("single")
+                    .appendQueryParameter("output", URLEncoder.encode(output.toString(), "UTF-8"))
+                    .build();
+        }
         return new URL(serverUri.toString());
     }
 

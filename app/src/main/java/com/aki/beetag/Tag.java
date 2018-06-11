@@ -143,54 +143,54 @@ public class Tag {
         this.orientation = orientation;
     }
 
-    // Converts id in bit array format to decimal representation format used by Fernando Wario.
+    // Converts ID in bit array format to decimal representation format used by Fernando Wario.
     // Description of the format conversion:
     // If the tag is oriented with white facing north, the first 11 bits are read clockwise
     // from the leftmost bit on the northern half (9 o' clock position), most significant
     // bit first, resulting in a decimal number. If the last bit (8 o' clock position) acts as
     // a parity bit, i.e. if it indicates an odd number of set bits in the first 11 bits, then
     // the decimal number is the bee ID. Otherwise, the bee ID equals the decimal number + 2048.
-    public static int bitIdToDecimalId(ArrayList<Integer> id) {
+    public static int bitIdToDecimalId(ArrayList<Integer> bitId) {
         // rotate the id by 3 so we start at "9 o' clock" instead of "12 o' clock"
-        ArrayList<Integer> rotatedId = new ArrayList<>(id);
+        ArrayList<Integer> rotatedId = new ArrayList<>(bitId);
         Collections.rotate(rotatedId, 3);
-        int ferwar = 0;
+        int decimalId = 0;
         int setBitsCount = 0;
         for (int i = 0; i < 11; i++) {
             int bit = rotatedId.get(i);
             // count set bits for parity bit checking
             setBitsCount += bit;
             // convert bit list to decimal (most significant bit first)
-            ferwar = (ferwar << 1) | bit;
+            decimalId = (decimalId << 1) | bit;
         }
         int parityBit = rotatedId.get(11);
         // check if parity bit matches
         if ((setBitsCount % 2) != parityBit) {
-            ferwar += 2048;
+            decimalId += 2048;
         }
-        return ferwar;
+        return decimalId;
     }
 
     // Converts id in decimal representation format used by Fernando Wario to bit array format.
     // This reverses the format conversion in bitIdToDecimalId()
-    public static ArrayList<Integer> decimalIdToBitId(int ferwar) {
-        boolean parityNeedsToMatch = ferwar < 2048;
+    public static ArrayList<Integer> decimalIdToBitId(int decimalId) {
+        boolean parityNeedsToMatch = decimalId < 2048;
         if (!parityNeedsToMatch) {
-            ferwar -= 2048;
+            decimalId -= 2048;
         }
-        ArrayList<Integer> id = new ArrayList<>(12);
+        ArrayList<Integer> bitId = new ArrayList<>(12);
         int setBitsCount = 0;
         for (int i = 10; i >= 0; i--) {
             // read bits from most to least significant
-            int bit = (ferwar >> i) & 1;
-            id.add(bit);
+            int bit = (decimalId >> i) & 1;
+            bitId.add(bit);
             // count set bits
             setBitsCount += bit;
         }
         // set "parity bit"
-        id.add(parityNeedsToMatch ? (setBitsCount % 2) : (1 - (setBitsCount % 2)));
+        bitId.add(parityNeedsToMatch ? (setBitsCount % 2) : (1 - (setBitsCount % 2)));
         // rotate the id by -3 so we start at "12 o' clock" instead of "9 o' clock"
-        Collections.rotate(id, -3);
-        return id;
+        Collections.rotate(bitId, -3);
+        return bitId;
     }
 }

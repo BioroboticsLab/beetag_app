@@ -10,8 +10,11 @@ public class DecodingResult {
     public static final int UNEXPECTED_RESPONSE = 4;
     public static final int UNKNOWN_ERROR = 10;
 
+    // original data that was used for the server request
     public DecodingData input;
+    // list of decoded tags
     public List<Tag> decodedTags;
+    // code indicating if any errors occured
     public int resultCode;
 
     public DecodingResult(DecodingData input, List<Tag> decodedTags, int resultCode) {
