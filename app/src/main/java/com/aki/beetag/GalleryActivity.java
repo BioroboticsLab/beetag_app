@@ -7,6 +7,7 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -14,8 +15,8 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
@@ -36,13 +37,19 @@ import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
-import static com.bumptech.glide.request.RequestOptions.centerCropTransform;
-
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Locale;
+
+import static com.bumptech.glide.request.RequestOptions.centerCropTransform;
 
 // Main activity
 
@@ -345,6 +352,17 @@ public class GalleryActivity
         });
 
         setUserMode(UserMode.STANDARD_MODE);
+
+        // After the initialization, check possible image transfer requests.
+        Intent intent = getIntent();
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if (type.startsWith("image/")) {
+                onReceiveImageIntent(intent);
+            }
+        }
     }
 
     // called by TagDeletionConfirmationDialogFragment when the user confirms the deletion of images
@@ -515,6 +533,9 @@ public class GalleryActivity
     private File createImageFile(DateTime date) {
         DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd_HH-mm-ss");
         String fileName = "bees_" + formatter.print(date);
+        return createImageFile(fileName);
+    }
+    private File createImageFile(String fileName) {
         File file = new File(imageFolder.getPath(), fileName + ".jpg");
         if (file.exists()) {
             int i = 0;
@@ -563,6 +584,33 @@ public class GalleryActivity
         }
     }
 
+    private void onReceiveImageIntent(Intent intent) {
+        Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+
+        if (imageUri == null) {
+            Toast.makeText(
+                getApplicationContext(),
+                "No image received.",
+                Toast.LENGTH_LONG).show();
+            return;
+        }
+        try {
+            final boolean saved = saveFile(imageUri);
+            if (saved) {
+                Toast.makeText(
+                        getApplicationContext(),
+                        "Image saved.",
+                        Toast.LENGTH_LONG).show();
+            }
+        } catch (IOException e) {
+            Toast.makeText(
+                getApplicationContext(),
+                "Error saving file: " + e.getLocalizedMessage(),
+                Toast.LENGTH_LONG).show();
+        }
+
+    }
+
     @Override
     protected void onStop() {
         if (database != null) {
@@ -577,5 +625,53 @@ public class GalleryActivity
         super.onRestart();
         database = Room.databaseBuilder(getApplicationContext(), TagDatabase.class, "beetag-database").build();
         dao = database.getDao();
+    }
+
+    // Saves an image from an Uri to the Beetags picture folder.
+    private boolean saveFile(Uri sourceUri) throws IOException {
+        Cursor returnCursor = null;
+        String fileDisplayName = "";
+        // Get the filename from the info table.
+        try {
+            returnCursor = getContentResolver().query(sourceUri,
+                    null, null, null, null);
+            if (returnCursor != null && returnCursor.moveToFirst()) {
+                final int nameIndex = returnCursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                fileDisplayName = returnCursor.getString(nameIndex);
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Could not save image.",
+                    Toast.LENGTH_LONG).show();
+            return false;
+        } finally {
+            if (returnCursor != null)
+                returnCursor.close();
+        }
+
+        // Cut the ending from the filename to be able to insert a count for duplicate images.
+        final int fileTypeStart = fileDisplayName.lastIndexOf('.');
+        if (fileTypeStart != -1) {
+            final String fileType = fileDisplayName.substring(fileTypeStart).toLowerCase();
+            if (fileType.equals(".jpeg") || fileType.equals(".jpg")) {
+                fileDisplayName = fileDisplayName.substring(0, fileTypeStart);
+            }
+            else {
+                Toast.makeText(this, "Only jpg images allowed.",
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+        }
+
+        // And copy the stream to the file location.
+        File destination = createImageFile(fileDisplayName);
+        FileChannel dst = new FileOutputStream(destination).getChannel();
+
+        InputStream srcStream = getContentResolver().openInputStream(sourceUri);
+        ReadableByteChannel src = Channels.newChannel(srcStream);
+
+        dst.transferFrom(src, 0, srcStream.available());
+        src.close();
+        dst.close();
+        return true;
     }
 }
