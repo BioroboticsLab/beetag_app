@@ -9,6 +9,10 @@ import android.support.annotation.Nullable;
 import android.view.View;
 import android.widget.Toast;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -48,10 +52,12 @@ public class SettingsFragment
             @Override
             public boolean onPreferenceClick(Preference preference) {
                 if (databaseFile != null) {
+                    DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd_HH-mm-ss");
+                    String databaseFileName = "beetags_" + formatter.print(DateTime.now()) + ".db";
                     // copy database file to 'Downloads' folder
                     File downloadsFolder = Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS);
-                    File databaseCopy = new File(downloadsFolder, "beetags.db");
+                    File databaseCopy = new File(downloadsFolder, databaseFileName);
                     try (FileChannel fromChannel =
                                  new FileInputStream(databaseFile).getChannel();
                          FileChannel toChannel =
