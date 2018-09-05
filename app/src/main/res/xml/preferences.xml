@@ -14,7 +14,8 @@
         </EditTextPreference>
         <SwitchPreference
             android:key="pref_detect_all_tags"
-            android:title="Try to detect all tags at once"
+            android:title="Automatic tag detection"
+            android:summary="Try to automatically detect all tags on the image. Requires online decoding."
             android:defaultValue="false">
         </SwitchPreference>
     </PreferenceCategory>
