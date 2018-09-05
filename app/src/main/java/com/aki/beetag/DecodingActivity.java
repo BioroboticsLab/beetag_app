@@ -309,7 +309,9 @@ public class DecodingActivity
                     tag.setRadius(data.tagSizeInPx / 2);
                     tag.setImageName(imageUri.getLastPathSegment());
                     tag.setOrientation(orientations.get(i));
-                    tag.setBeeId(Tag.bitIdToDecimalId(ids.get(i)));
+                    int beeId = Tag.bitIdToDecimalId(ids.get(i));
+                    tag.setBeeId(beeId);
+                    tag.setBeeName(beeNamer.getBeeName(beeId));
                     tag.setDate(new DateTime(new File(imageUri.getPath()).lastModified()));
                     tags.add(tag);
                 }
@@ -685,7 +687,9 @@ public class DecodingActivity
                     if (toggledBitPosition != -1) {
                         // invert bit that was tapped
                         id.set(toggledBitPosition, 1 - id.get(toggledBitPosition));
-                        currentlyEditedTag.setBeeId(Tag.bitIdToDecimalId(id));
+                        int beeId = Tag.bitIdToDecimalId(id);
+                        currentlyEditedTag.setBeeId(beeId);
+                        currentlyEditedTag.setBeeName(beeNamer.getBeeName(beeId));
                         // update view to show changed tag
                         tagView.invalidate();
 
@@ -824,6 +828,7 @@ public class DecodingActivity
         Tag dummyTag = new Tag();
         dummyTag.setEntryId(UUID.randomUUID().toString());
         dummyTag.setBeeId(0);
+        dummyTag.setBeeName(beeNamer.getBeeName(0));
         dummyTag.setImageName(imageUri.getLastPathSegment());
         dummyTag.setCenterX(position.x);
         dummyTag.setCenterY(position.y);
