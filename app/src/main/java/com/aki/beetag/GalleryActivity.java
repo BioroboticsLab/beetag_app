@@ -362,6 +362,10 @@ public class GalleryActivity
             if (type.startsWith("image/")) {
                 onReceiveImageIntent(intent);
             }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
+            if (type.startsWith("image/")) {
+                onReceiveMultiImageIntent(intent);
+            }
         }
     }
 
@@ -585,7 +589,7 @@ public class GalleryActivity
     }
 
     private void onReceiveImageIntent(Intent intent) {
-        Uri imageUri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        Uri imageUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
 
         if (imageUri == null) {
             Toast.makeText(
@@ -595,12 +599,26 @@ public class GalleryActivity
             return;
         }
         try {
-            final boolean saved = saveFile(imageUri);
-            if (saved) {
-                Toast.makeText(
-                        getApplicationContext(),
-                        "Image saved.",
-                        Toast.LENGTH_LONG).show();
+            final int saved = saveFile(imageUri);
+            switch (saved) {
+                case 0:
+                    Toast.makeText(
+                            getApplicationContext(),
+                            "Image saved.",
+                            Toast.LENGTH_LONG).show();
+                    break;
+                case 1:
+                    Toast.makeText(
+                            this,
+                            "Only JPG images allowed.",
+                            Toast.LENGTH_LONG).show();
+                    break;
+                default:
+                    Toast.makeText(
+                            this,
+                            "Could not save image.",
+                            Toast.LENGTH_LONG).show();
+                    break;
             }
         } catch (IOException e) {
             Toast.makeText(
@@ -608,7 +626,62 @@ public class GalleryActivity
                 "Error saving file: " + e.getLocalizedMessage(),
                 Toast.LENGTH_LONG).show();
         }
+    }
 
+    private void onReceiveMultiImageIntent(Intent intent) {
+        ArrayList<Uri> imageUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+
+        if (imageUris == null) {
+            Toast.makeText(
+                    getApplicationContext(),
+                    "No images received.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        int wrongFileTypeCount = 0;
+        int otherErrorCount = 0;
+
+        for (Uri uri : imageUris) {
+            try {
+                final int saved = saveFile(uri);
+                if (saved == 1) {
+                    wrongFileTypeCount++;
+                } else if (saved != 0) {
+                    otherErrorCount++;
+                }
+            } catch (IOException e) {
+                otherErrorCount++;
+            }
+        }
+
+        if ((wrongFileTypeCount == 0) && (otherErrorCount == 0)) {
+            Toast.makeText(
+                    getApplicationContext(),
+                    "All " + imageUris.size() + " images saved.",
+                    Toast.LENGTH_LONG).show();
+        } else if ((wrongFileTypeCount > 0) && (otherErrorCount > 0)) {
+            Toast.makeText(
+                    getApplicationContext(),
+                    (wrongFileTypeCount + otherErrorCount) + " of " + imageUris.size() +
+                            " images could NOT be saved.\n" +
+                            wrongFileTypeCount +
+                            " of them have the wrong file type, only JPG is allowed.",
+                    Toast.LENGTH_LONG).show();
+        } else if (otherErrorCount > 0) {
+            Toast.makeText(
+                    getApplicationContext(),
+                    otherErrorCount + " of " + imageUris.size() +
+                            " images could NOT be saved.\n",
+                    Toast.LENGTH_LONG).show();
+        } else if (wrongFileTypeCount > 0) {
+            Toast.makeText(
+                    getApplicationContext(),
+                    wrongFileTypeCount + " of " + imageUris.size() +
+                            " images could NOT be saved because they have the wrong file type, " +
+                            "only JPG is allowed.",
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
@@ -628,7 +701,9 @@ public class GalleryActivity
     }
 
     // Saves an image from an Uri to the Beetags picture folder.
-    private boolean saveFile(Uri sourceUri) throws IOException {
+    // Returns 0 if successful, 1 if the picture has the wrong file type and any other integer if
+    // an error occurred.
+    private int saveFile(Uri sourceUri) throws IOException {
         Cursor returnCursor = null;
         String fileDisplayName = "";
         // Get the filename from the info table.
@@ -640,9 +715,7 @@ public class GalleryActivity
                 fileDisplayName = returnCursor.getString(nameIndex);
             }
         } catch (Exception e) {
-            Toast.makeText(this, "Could not save image.",
-                    Toast.LENGTH_LONG).show();
-            return false;
+            return 2;
         } finally {
             if (returnCursor != null)
                 returnCursor.close();
@@ -656,9 +729,7 @@ public class GalleryActivity
                 fileDisplayName = fileDisplayName.substring(0, fileTypeStart);
             }
             else {
-                Toast.makeText(this, "Only jpg images allowed.",
-                        Toast.LENGTH_LONG).show();
-                return false;
+                return 1;
             }
         }
 
@@ -672,6 +743,6 @@ public class GalleryActivity
         dst.transferFrom(src, 0, srcStream.available());
         src.close();
         dst.close();
-        return true;
+        return 0;
     }
 }
