@@ -41,6 +41,9 @@ public class SettingsFragment
         // load preferences
         addPreferencesFromResource(R.xml.preferences);
 
+        findPreference("pref_app_version").setSummary(String.format(
+                getResources().getString(R.string.app_version)));
+
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
         findPreference("pref_decoding_server_url")
                 .setSummary(sharedPreferences.getString("pref_decoding_server_url", null));

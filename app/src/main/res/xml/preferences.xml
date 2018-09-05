@@ -39,4 +39,12 @@
             android:title="Export all tags as SQLite">
         </Preference>
     </PreferenceCategory>
+    <PreferenceCategory
+        android:title="Miscellaneous">
+        <Preference
+            android:key="pref_app_version"
+            android:title="App version"
+            android:selectable="false">
+        </Preference>
+    </PreferenceCategory>
 </PreferenceScreen>
