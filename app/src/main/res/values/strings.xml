@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Beetag</string>
-    <string name="app_version">1.2</string>
 
     <string name="gallery_no_images_message">
         The \"Beetags\" image folder is empty. Take a new picture by tapping on the camera icon.

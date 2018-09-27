@@ -41,8 +41,7 @@ public class SettingsFragment
         // load preferences
         addPreferencesFromResource(R.xml.preferences);
 
-        findPreference("pref_app_version").setSummary(String.format(
-                getResources().getString(R.string.app_version)));
+        findPreference("pref_app_version").setSummary(BuildConfig.VERSION_NAME);
 
         SharedPreferences sharedPreferences = getPreferenceScreen().getSharedPreferences();
         findPreference("pref_decoding_server_url")
@@ -107,7 +106,7 @@ public class SettingsFragment
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        view.setBackgroundColor(getResources().getColor(R.color.colorPrimary));
+        view.setBackgroundColor(getResources().getColor(R.color.colorPrimary, getContext().getTheme()));
     }
 
     @Override
